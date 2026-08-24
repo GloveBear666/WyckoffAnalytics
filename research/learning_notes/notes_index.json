@@ -95,6 +95,14 @@
       "created": "20260824_155048",
       "path": "research\\learning_notes\\20260824_155048_v0_3_1_fix_500_and_profile_chain.md",
       "has_failure_reasons": false
+    },
+    {
+      "id": "20260824_155536_v0_3_2_semantic_concept_windows",
+      "topic": "v0.3.2_semantic_concept_windows",
+      "version": "0.3.2",
+      "created": "20260824_155536",
+      "path": "research\\learning_notes\\20260824_155536_v0_3_2_semantic_concept_windows.md",
+      "has_failure_reasons": false
     }
   ]
 }

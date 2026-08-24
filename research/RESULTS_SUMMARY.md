@@ -16,7 +16,7 @@
 | wyckoff-analytics-mandarin-v2.pdf (Wyckoff Analytics 官方课件, 15页) | 扫描图片 | RapidOCR 616行; 五步法/三大定律/价格周期/九大检验/派发事件标注 |
 
 - **因子矩阵**: `knowledge/factors/factor_matrix_v0.1.json` — 22 个确定性量化因子（9 基础量价 + 16 事件 + 6 结构 + 3 组合），每个因子含公式、输出域、原文页码溯源
-- **概念锚点**: `knowledge/factors/concept_windows.json` — 22 概念 × 249 个原文窗口
+- **概念锚点**: `knowledge/factors/concept_windows_v2.json` — 句子级语料(2,787 完整句)重建后提取: 22 概念 × 15 整句窗口, 短语级匹配/去重/TOC过滤 (v0.1 行级版本语义破碎, 已归档为 `concept_windows_v0.1.legacy.json`)
 
 ## 2. 市场隔离层 (模块2) — 完成
 

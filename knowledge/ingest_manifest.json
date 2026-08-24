@@ -23,5 +23,9 @@
       "raw_text": "knowledge\\raw_text\\威科夫操盘法.txt",
       "chapters": "knowledge\\chapters\\威科夫操盘法.chapters.json"
     }
-  ]
+  ],
+  "concept_windows": {
+    "v0.1_legacy": "knowledge/factors/concept_windows_v0.1.legacy.json (行级, 语义破碎, 已废弃)",
+    "v0.2_current": "knowledge/factors/concept_windows_v2.json (句子级, 整句窗口, 22概念)"
+  }
 }

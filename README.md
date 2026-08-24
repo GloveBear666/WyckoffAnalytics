@@ -81,7 +81,7 @@ python web/app.py                                                    # 打开 ht
 ## 知识溯源
 
 - `knowledge/factors/factor_matrix_v0.1.json` — 确定性量化因子矩阵 (含页码溯源: 孟洪涛《威科夫操盘法》2016 + Wyckoff Analytics 官方课件)
-- `knowledge/factors/concept_windows.json` — 22 概念 × 249 原文窗口
+- `knowledge/factors/concept_windows_v2.json` — **句子级**概念窗口 (22 概念 × 15 窗, 整句匹配/整句窗口/去重/TOC过滤; 语料构建: `ingest/extract_sentences.py` → `ingest/extract_concepts_v2.py`)
 - `research/learning_notes/` — 每次寻优/回测自动生成学习笔记
 - `research/training_log.json` — AI 训练轮次历史 (每轮参数/准确率/验证判定)
 - `research/strategy_log.jsonl` — 策略版本日志
