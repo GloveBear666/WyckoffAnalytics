@@ -1,0 +1,7 @@
+# 跨平台换行符统一: Windows 检出 CRLF, macOS/Linux 检出 LF
+* text=auto
+
+# 二进制文件
+*.png binary
+*.pdf binary
+*.parquet binary
