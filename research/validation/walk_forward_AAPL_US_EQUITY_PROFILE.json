@@ -1,0 +1,188 @@
+{
+ "protocol": "WALK_FORWARD",
+ "symbol": "AAPL",
+ "profile": "US_EQUITY_PROFILE",
+ "n_folds": 4,
+ "n_trials_per_fold": 13,
+ "decay_veto_threshold": 0.3,
+ "folds": [
+  {
+   "fold": 1,
+   "train_range": [
+    "2020-08-24 00:00:00-04:00",
+    "2022-02-18 00:00:00-05:00"
+   ],
+   "test_range": [
+    "2022-02-22 00:00:00-05:00",
+    "2023-08-22 00:00:00-04:00"
+   ],
+   "best_params": {
+    "T": 0.4370861069626263,
+    "feature_window": 90,
+    "max_bars_hold": 100,
+    "vol_z_min": 1.3177194231349623
+   },
+   "is_metrics": {
+    "total_return": 0.026012190026954318,
+    "cagr": 0.017313330307141106,
+    "volatility": 0.009513850626449865,
+    "sharpe": 1.8138309546238907,
+    "sortino": 0.044499232986951374,
+    "max_drawdown": -0.009322548746593773,
+    "calmar": 1.857145591592317,
+    "trades": 7,
+    "win_rate": 0.7142857142857143,
+    "profit_factor": 6.26779234026978,
+    "avg_bars_held": 3.0,
+    "gross_profit": 3095.015803076191,
+    "gross_loss": 493.79680038075
+   },
+   "oos_metrics": {
+    "total_return": -0.00435877338247137,
+    "cagr": -0.0029156661876051926,
+    "volatility": 0.0035233588050051392,
+    "sharpe": -0.8291747194750687,
+    "sortino": -0.01775964440470445,
+    "max_drawdown": -0.00435877338247137,
+    "calmar": -0.6689189668199832,
+    "trades": 2,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "avg_bars_held": 6.5,
+    "gross_profit": 0.0,
+    "gross_loss": 435.8773382471458
+   },
+   "decay_calmar": 1.360186605642723,
+   "decay_sharpe": 1.4571400203317202,
+   "decay_return": 1.1675665669808934
+  },
+  {
+   "fold": 2,
+   "train_range": [
+    "2020-08-24 00:00:00-04:00",
+    "2023-08-22 00:00:00-04:00"
+   ],
+   "test_range": [
+    "2023-08-23 00:00:00-04:00",
+    "2025-02-21 00:00:00-05:00"
+   ],
+   "best_params": {
+    "T": 0.20354910975080107,
+    "feature_window": 70,
+    "max_bars_hold": 30,
+    "vol_z_min": 0.7090023539410929
+   },
+   "is_metrics": {
+    "total_return": 0.0060532826370700565,
+    "cagr": 0.0020190499330914324,
+    "volatility": 0.003958137545527215,
+    "sharpe": 0.5122419757762187,
+    "sortino": 0.00987192390216048,
+    "max_drawdown": -0.004986544012526073,
+    "calmar": 0.404899651546167,
+    "trades": 9,
+    "win_rate": 0.4444444444444444,
+    "profit_factor": 2.3580525629148363,
+    "avg_bars_held": 2.4444444444444446,
+    "gross_profit": 1051.0608371265632,
+    "gross_loss": 445.7325734195364
+   },
+   "oos_metrics": {
+    "total_return": 0.004865451813410582,
+    "cagr": 0.003258277392230946,
+    "volatility": 0.002985473614204333,
+    "sharpe": 1.0940039911561028,
+    "sortino": 0.021106917269023823,
+    "max_drawdown": -0.0015270734964649701,
+    "calmar": 2.133674246703612,
+    "trades": 5,
+    "win_rate": 0.6,
+    "profit_factor": 3.573045805730308,
+    "avg_bars_held": 1.8,
+    "gross_profit": 675.6382710394926,
+    "gross_loss": 189.09308969841106
+   },
+   "decay_calmar": -4.269637152207646,
+   "decay_sharpe": -1.1357171861956827,
+   "decay_return": 0.19622920238107622
+  },
+  {
+   "fold": 3,
+   "train_range": [
+    "2020-08-24 00:00:00-04:00",
+    "2025-02-21 00:00:00-05:00"
+   ],
+   "test_range": [
+    "2025-02-24 00:00:00-05:00",
+    "2026-08-21 00:00:00-04:00"
+   ],
+   "best_params": {
+    "T": 0.824515480522407,
+    "feature_window": 60,
+    "max_bars_hold": 70,
+    "vol_z_min": 0.40012816633253157
+   },
+   "is_metrics": {
+    "total_return": 0.2194001304497739,
+    "cagr": 0.04522881339762819,
+    "volatility": 0.028236228560182625,
+    "sharpe": 1.5822229833101025,
+    "sortino": 0.09799311614841473,
+    "max_drawdown": -0.020475270139250323,
+    "calmar": 2.2089483113058543,
+    "trades": 30,
+    "win_rate": 0.6666666666666666,
+    "profit_factor": 3.8996663764205453,
+    "avg_bars_held": 10.066666666666666,
+    "gross_profit": 29506.405242158693,
+    "gross_loss": 7566.3921971813015
+   },
+   "oos_metrics": {
+    "total_return": 0.12498186103481301,
+    "cagr": 0.08212736690991163,
+    "volatility": 0.02373639790751578,
+    "sharpe": 3.3464096015515006,
+    "sortino": 0.23417160419662614,
+    "max_drawdown": -0.005587207570687869,
+    "calmar": 14.699179486506981,
+    "trades": 12,
+    "win_rate": 0.8333333333333334,
+    "profit_factor": 7.683805675943567,
+    "avg_bars_held": 5.916666666666667,
+    "gross_profit": 14368.10673095628,
+    "gross_loss": 1869.9206274749895
+   },
+   "decay_calmar": -5.654379104876987,
+   "decay_sharpe": -1.115005051026763,
+   "decay_return": 0.4303473713593601
+  }
+ ],
+ "oos_aggregate": {
+  "total_return": 0.12498186103481301,
+  "cagr": 0.02663485843817237,
+  "volatility": 0.01446282914807329,
+  "sharpe": 1.8264154633972054,
+  "sortino": 0.08191399867902312,
+  "max_drawdown": -0.005587207570687869,
+  "calmar": 4.767114538200918,
+  "trades": 0,
+  "win_rate": 0.0,
+  "profit_factor": 0.0,
+  "avg_bars_held": 0.0,
+  "gross_profit": 0.0,
+  "gross_loss": 0.0
+ },
+ "vetoed": true,
+ "veto_reasons": [
+  {
+   "fold": 1,
+   "reason": "calmar_decay",
+   "decay": 1.360186605642723
+  },
+  {
+   "fold": 1,
+   "reason": "sharpe_decay",
+   "decay": 1.4571400203317202
+  }
+ ]
+}

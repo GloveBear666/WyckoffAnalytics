@@ -1,0 +1,103 @@
+{
+ "rounds": [
+  {
+   "ts": "2026-08-24T15:42:19",
+   "symbol": "BTC/USDT",
+   "profile": "CRYPTO_PROFILE",
+   "tf": "4h",
+   "htf_tf": "1d",
+   "trials": 10,
+   "seed": 42,
+   "best_params": {
+    "T": 0.3741523922560336,
+    "feature_window": 45,
+    "max_bars_hold": 90,
+    "vol_z_min": 1.0482592393573222
+   },
+   "fitness": 0.7441917857117364,
+   "is_metrics": {
+    "total_return": 0.2884070854857863,
+    "cagr": 0.02134176612448946,
+    "volatility": 0.011609643634356077,
+    "sharpe": 1.8252016445955122,
+    "sortino": 0.08515756214985275,
+    "max_drawdown": -0.01074367036181112,
+    "calmar": 1.9864501986536898,
+    "trades": 209,
+    "win_rate": 0.6555023923444976,
+    "profit_factor": 2.870961494417345,
+    "avg_bars_held": 5.440191387559809,
+    "gross_profit": 44255.62148753257,
+    "gross_loss": 15414.912938953972
+   },
+   "accuracy": {
+    "win_rate": 0.6555,
+    "trades": 209,
+    "by_setup": {
+     "SOW": {
+      "trades": 61,
+      "wins": 44,
+      "pnl": 12262.57,
+      "win_rate": 0.7213
+     },
+     "SECONDARY_TEST": {
+      "trades": 52,
+      "wins": 21,
+      "pnl": -528.13,
+      "win_rate": 0.4038
+     },
+     "UPTHRUST": {
+      "trades": 10,
+      "wins": 5,
+      "pnl": 192.21,
+      "win_rate": 0.5
+     },
+     "SOS_JOC": {
+      "trades": 70,
+      "wins": 58,
+      "pnl": 14947.79,
+      "win_rate": 0.8286
+     },
+     "STOP_ACTION": {
+      "trades": 7,
+      "wins": 3,
+      "pnl": 363.98,
+      "win_rate": 0.4286
+     },
+     "SPRING": {
+      "trades": 9,
+      "wins": 6,
+      "pnl": 1602.28,
+      "win_rate": 0.6667
+     }
+    }
+   },
+   "walk_forward": {
+    "vetoed": false,
+    "folds": [
+     {
+      "fold": 1,
+      "is_calmar": 3.2484506958899577,
+      "oos_calmar": 0.590528392058674,
+      "decay": 0.8182122964631019,
+      "oos_trades": 48
+     },
+     {
+      "fold": 2,
+      "is_calmar": 2.7113378992773125,
+      "oos_calmar": 2.6492473288614757,
+      "decay": 0.022900343934404693,
+      "oos_trades": 46
+     },
+     {
+      "fold": 3,
+      "is_calmar": 2.9719356812592213,
+      "oos_calmar": 1.5210470559855724,
+      "decay": 0.48819650923902275,
+      "oos_trades": 49
+     }
+    ]
+   }
+  }
+ ]
+}

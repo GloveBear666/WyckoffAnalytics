@@ -1,0 +1,260 @@
+{
+  "$schema_comment": "KNOWLEDGE_INGESTION_LAYER OUTPUT - 确定性量化因子矩阵 (架构模块1)",
+  "version": "0.1.0",
+  "source_documents": [
+    {"doc_id": "威科夫操盘法", "title": "威科夫操盘法：华尔街大师成功驾驭市场超过95年的秘技", "author": "孟洪涛", "chars_extracted": 114467, "pages": 284},
+    {"doc_id": "wyckoff-analytics-mandarin-v2", "title": "Wyckoff Analytics Mandarin V2 (扫描版, OCR处理中)", "pages": 15}
+  ],
+  "core_principles": [
+    {"id": "P1", "name": "供求关系原则", "definition": "趋势动力来自供求不平衡: 供过于求→下跌, 供不应求→上涨", "page_refs": [8, 24, 28, 29], "quantification": "supply_demand_imbalance"},
+    {"id": "P2", "name": "因果关系原则", "definition": "主要趋势反转前需要准备过程(吸筹/派发区间), 没有因则趋势不持久", "page_refs": [25, 30], "quantification": "range_accumulation_score / range_distribution_score"},
+    {"id": "P3", "name": "努力和结果原则", "definition": "努力=成交量(订单总量), 结果=价格进展幅度; 量增价不涨/不跌 = 停止行为", "page_refs": [25, 44, 28], "quantification": "effort_result_ratio"}
+  ],
+  "factors": {
+    "base_pv": [
+      {
+        "id": "F_VOL_Z", "name": "成交量Z分数", "en": "Volume Z-Score",
+        "category": "量", "unit": "z",
+        "formula": "z = (V_t - mean(V,20)) / std(V,20)",
+        "output_range": [-3, 3], "direction": "|z|大=供需活跃",
+        "grounding": "成交量扩大/萎缩识别 (p18, p42-44, p61)", "page_refs": [18, 42, 44, 61]
+      },
+      {
+        "id": "F_RANGE_PCT", "name": "振幅百分比", "en": "Bar Range %",
+        "category": "价", "unit": "pct",
+        "formula": "range_pct = (high-low)/close * 100",
+        "output_range": [0, 20], "direction": "极宽=高潮/恐慌",
+        "grounding": "恐慌抛售=极宽振幅+超高量; 抢购高潮振幅变大 (p59, p61)", "page_refs": [59, 61]
+      },
+      {
+        "id": "F_BODY_RATIO", "name": "实体占比", "en": "Real Body Ratio",
+        "category": "价", "unit": "0..1",
+        "formula": "body_ratio = |close-open| / max(high-low, eps)",
+        "output_range": [0, 1], "direction": "小=十字/上影(停止行为)",
+        "grounding": "努力无结果=小蜡烛(窄幅) (p25, p44)", "page_refs": [25, 44]
+      },
+      {
+        "id": "F_UPPER_WICK", "name": "上影线占比", "en": "Upper Wick Ratio",
+        "category": "价", "unit": "0..1",
+        "formula": "upper_wick = (high - max(open,close)) / max(high-low, eps)",
+        "output_range": [0, 1], "direction": "大=供应进场(上冲回落)",
+        "grounding": "上冲回落=上影线, 突破阻力后收回 (p39, p60); 供应扩大信号 (p40)", "page_refs": [39, 40, 60]
+      },
+      {
+        "id": "F_LOWER_WICK", "name": "下影线占比", "en": "Lower Wick Ratio",
+        "category": "价", "unit": "0..1",
+        "formula": "lower_wick = (min(open,close) - low) / max(high-low, eps)",
+        "output_range": [0, 1], "direction": "大=需求接盘(下冲反弹)",
+        "grounding": "下冲反弹/Spring=价格突破支撑后收回 (p40, p61, p74)", "page_refs": [40, 61, 74]
+      },
+      {
+        "id": "F_CLOSE_POS", "name": "收盘位置", "en": "Close Position in Range",
+        "category": "价", "unit": "0..1",
+        "formula": "close_pos = (close-low) / max(high-low, eps)",
+        "output_range": [0, 1], "direction": ">0.7=需求强; <0.3=供应强",
+        "grounding": "收于中部以上=新需求吸收全部供应 (p37)", "page_refs": [37]
+      },
+      {
+        "id": "F_UPVOL_RATIO", "name": "阳线成交量比", "en": "Up-Volume Ratio",
+        "category": "量", "unit": "0..1",
+        "formula": "upvol_ratio = sum(vol of up bars, 10) / sum(vol, 10)",
+        "output_range": [0, 1], "direction": ">0.55=需求主导; <0.45=供应主导",
+        "grounding": "上涨波力度和成交量大于下降波=需求扩大 (p73, p74)", "page_refs": [73, 74]
+      },
+      {
+        "id": "F_ROC", "name": "走势速度", "en": "Rate of Change",
+        "category": "价", "unit": "pct",
+        "formula": "roc = close_t / close_{t-n} - 1, n=5",
+        "output_range": [-15, 15], "direction": "速度快=超买/超卖风险",
+        "grounding": "三个基本要素: 价格/成交量/走势速度; 超卖=持续急速下跌 (p18, p59)", "page_refs": [18, 59]
+      },
+      {
+        "id": "F_EFFORT_RESULT", "name": "努力结果比", "en": "Effort vs Result",
+        "category": "组合", "unit": "z / pct",
+        "formula": "er = volume_zscore / max(|close_t - close_{t-1}| / close_{t-1}, 0.001)",
+        "output_range": [0, 100], "direction": "高=量增价滞(停止行为); 低=量价协调",
+        "grounding": "努力(量)无结果(价格进展小)=停止行为 (p25, p44, p24, p28); 放量滞涨/放量滞跌 (p44)", "page_refs": [24, 25, 28, 44]
+      }
+    ],
+    "events": [
+      {
+        "id": "EVT_SC", "name": "恐慌抛售", "en": "Selling Climax (SC)",
+        "formula": "下降趋势中: F_VOL_Z > 2.0 且 F_RANGE_PCT > 95分位 且 阴线实体大",
+        "semantics": "标志下跌趋势结束或接近结束; 天量+超长阴线=巨大买盘信号", "confidence_weight": 1.0,
+        "grounding": "潮水般恐慌抛售, 极宽振幅+超高成交量, 可发生在一天或几天 (p42, p59, p49)", "page_refs": [42, 49, 59]
+      },
+      {
+        "id": "EVT_AR", "name": "自动反弹", "en": "Automatic Rally (AR)",
+        "formula": "SC后首个显著反弹(>1.5*ATR), 常为空头回补",
+        "semantics": "正常市场行为, 不宜抄底, 上涨不会持续太久", "confidence_weight": 0.4,
+        "grounding": "自动反弹是SC之后的正常市场行为, 空头回补 (p64, p65, p67, p105)", "page_refs": [64, 65, 67, 105]
+      },
+      {
+        "id": "EVT_ST", "name": "二次测试", "en": "Secondary Test (ST)",
+        "formula": "AR后价格回测SC低点: F_VOL_Z < 0 且 F_RANGE_PCT < 0.6*中位振幅 (小蜡烛小量) = 成功ST",
+        "semantics": "决定熊市是否终止的关键; 小量小振幅=供应枯竭; 放量=浮动供应仍在", "confidence_weight": 1.0,
+        "grounding": "测试蜡烛必须小蜡烛小量=供应枯竭 (p32, p41, p68); 成功ST终止熊市 (p59, p65)", "page_refs": [32, 41, 59, 65, 68]
+      },
+      {
+        "id": "EVT_SPRING", "name": "下冲反弹/弹簧效应", "en": "Spring",
+        "formula": "价格跌破区间支撑后快速收回(≤3根K线): F_LOWER_WICK > 0.5 且收盘回到支撑上; 放量深度突破=等二次测试",
+        "semantics": "CM测试突破支撑时的供应量; 成功Spring后应持续上涨并创新高; 失败=需求乏力", "confidence_weight": 1.0,
+        "grounding": "Spring=价格突破先前支撑区域 (p61, p74, p40); 轻微突破直接进场, 大幅突破+增量等ST (p74); 失败Spring=需求乏力 (p61)", "page_refs": [40, 61, 74]
+      },
+      {
+        "id": "EVT_UT", "name": "上冲回落", "en": "Upthrust (UT)",
+        "formula": "价格突破阻力后收回(≤3根K线): F_UPPER_WICK > 0.5 或 突破后紧跟阴线回落; 需阴线跟随+量递增才有效",
+        "semantics": "主力吃掉空方止损单后任价格下跌; 上升趋势中的UT=试探不是反转", "confidence_weight": 0.9,
+        "grounding": "UT=突破阻力线后收于线下, 上影线 (p39, p60); 必须有阴线跟随和成交量递增 (p39); 牛市中UT是试探 (p92, p98)", "page_refs": [39, 60, 92, 98]
+      },
+      {
+        "id": "EVT_STOP_ACTION", "name": "停止行为", "en": "Stopping Action",
+        "formula": "支撑附近: F_EFFORT_RESULT > 阈值 且 F_BODY_RATIO < 0.3 (窄幅) 且 F_VOL_Z > 0 (量不缩)",
+        "semantics": "供应枯竭+新需求接盘; 振幅缩小+成交量不减=停止行为", "confidence_weight": 0.9,
+        "grounding": "高低范围大幅缩小同时成交量没有缩小=停止行为 (p23, p34); 努力无结果 (p25)", "page_refs": [23, 25, 34]
+      },
+      {
+        "id": "EVT_SOS", "name": "强势出现", "en": "Sign of Strength (SOS)",
+        "formula": "区间后: 超长阳线(F_RANGE_PCT > 80分位) + F_VOL_Z > 1.5 + 突破区间上边界; 需回调确认(小蜡烛小量)",
+        "semantics": "需求控制市场, 趋势开始信号; 之前常是交易区间或吸筹阶段", "confidence_weight": 1.0,
+        "grounding": "SOS=超长阳线+超大成交量, 需回调确认(小蜡烛小量) (p60-61); SOS标志趋势开始 (p49)", "page_refs": [49, 60, 61]
+      },
+      {
+        "id": "EVT_SOW", "name": "弱势出现", "en": "Sign of Weakness (SOW)",
+        "formula": "区间后: 放量宽幅阴线跌破区间下边界; 需反弹无力确认",
+        "semantics": "供应控制市场, 熊市标志", "confidence_weight": 1.0,
+        "grounding": "SOW=价格下降+变宽振幅+增加至非常大的成交量, 需反弹无力确认 (p52, p61)", "page_refs": [52, 61]
+      },
+      {
+        "id": "EVT_JOC", "name": "跃过小溪", "en": "Jump Over the Creek (JOC)",
+        "formula": "SOS变体: 强烈上涨突破前期关键阻力/区间上边界, 高量+宽振幅",
+        "semantics": "SOS信号, 需求完全接管", "confidence_weight": 1.0,
+        "grounding": "JOC=强烈上涨突破前期关键阻力位置或区间上边界, 高成交量+非常宽振幅 (p60, p73)", "page_refs": [60, 73]
+      },
+      {
+        "id": "EVT_BC", "name": "抢购高潮", "en": "Buying Climax (BC)",
+        "formula": "牛市中: 超长阳线(F_RANGE_PCT > 80分位) + F_VOL_Z > 2.0",
+        "semantics": "供应进场并开始吸收需求; CM出货手段; 之后自然下跌或横盘", "confidence_weight": 1.0,
+        "grounding": "牛市中超长阳线+扩大成交量=抢购高潮=供应进场 (p38, p45); 成交量明显增加且振幅变大 (p61)", "page_refs": [38, 45, 61]
+      },
+      {
+        "id": "EVT_SHAKEOUT", "name": "震仓", "en": "Shakeout (SO)",
+        "formula": "区间内突发深跌(>2*ATR)后快速收回(≤5根K线); 终极震仓=高量宽幅深破所有前期支撑",
+        "semantics": "CM清除浮动供应; 终极震仓可直接进场; 震仓放量时需等二次测试", "confidence_weight": 0.9,
+        "grounding": "震仓=故意使价格下降/上涨激起公众平仓 (p59); 终极震仓高量宽幅深破前期支撑 (p119); 震仓放量须等ST (p121); 震仓后回测底部 (p49)", "page_refs": [49, 59, 119, 121]
+      },
+      {
+        "id": "EVT_SOT", "name": "停滞上涨", "en": "Stalling (SOT)",
+        "formula": "阻力位置: 上涨停滞(窄幅阳线) + F_VOL_Z > 1.0",
+        "semantics": "顶部供应超过需求", "confidence_weight": 0.7,
+        "grounding": "阻力位置停滞上涨+扩大成交量=顶部供应超过需求 (p23)", "page_refs": [23]
+      },
+      {
+        "id": "EVT_VDB", "name": "垂直需求柱", "en": "Vertical Demand Bar (VDB)",
+        "formula": "放量长阳突破阻力: F_VOL_Z > 1.5 且 F_RANGE_PCT > 70分位且阳线",
+        "semantics": "需求控制市场; 底部形成支撑区, 回测=低风险买入点", "confidence_weight": 0.8,
+        "grounding": "放量长阳突破阻力=垂直需求柱, 底部形成支撑区 (p32, p40, p42)", "page_refs": [32, 40, 42]
+      },
+      {
+        "id": "EVT_VSB", "name": "垂直供应柱", "en": "Vertical Supply Bar (VSB)",
+        "formula": "放量长阴: F_VOL_Z > 1.5 且 F_RANGE_PCT > 70分位且阴线",
+        "semantics": "供应完全控制市场; 顶部是主要阻力区", "confidence_weight": 0.8,
+        "grounding": "VSB=供应完全控制市场, 顶是关键区 (p60, p92)", "page_refs": [60, 92]
+      },
+      {
+        "id": "EVT_DEAD_POINT", "name": "死角", "en": "Dead Point",
+        "formula": "区间内: 高点降低且低点升高(挤压形态), 波动收窄(ATR连续收缩>3根)",
+        "semantics": "价格很快大幅波动, 提前进场好时机", "confidence_weight": 0.7,
+        "grounding": "死角=蜡烛高点不断降低低点不断升高, 波动越走越窄→即将大幅波动 (p23, p59)", "page_refs": [23, 59]
+      },
+      {
+        "id": "EVT_ICE_BREAK", "name": "冰线突破", "en": "Ice Line Break",
+        "formula": "突破冰线(供应越过需求的价位)且回测不破",
+        "semantics": "需求克服供应, 供应枯竭, 下一波上涨平台建立", "confidence_weight": 0.8,
+        "grounding": "冰线=供应越过需求的价位, 突破=需求足够强大克服供应 (p36, p37)", "page_refs": [36, 37]
+      }
+    ],
+    "structure": [
+      {
+        "id": "F_TR_LEVELS", "name": "区间支撑阻力", "en": "Trading Range Levels",
+        "formula": "滚动窗口(默认60根)的价格聚类: 上边界=区间高点簇, 下边界=区间低点簇; 结合成交量分布(Volume Profile)质量权重",
+        "semantics": "CM买入点=区间底部, 出场=区间顶部 (p10); 支撑质量由成交量判断 (p18)", "page_refs": [10, 18]
+      },
+      {
+        "id": "F_SUPPLY_EXHAUST", "name": "供应枯竭度", "en": "Supply Exhaustion",
+        "formula": "回调波成交量衰减率 = 1 - vol(最近回调) / vol(前回调); 越低越枯竭",
+        "semantics": "浮动供应被清出市场; 测试蜡烛小量=枯竭 (p41, p121)", "page_refs": [41, 121]
+      },
+      {
+        "id": "F_DEMAND_GROWTH", "name": "需求增长率", "en": "Demand Growth",
+        "formula": "上涨波量价斜率: Δvol/Δprice 递增且价格上涨",
+        "semantics": "需求持续扩大是牛市前提 (p42, p73)", "page_refs": [42, 73]
+      },
+      {
+        "id": "F_RANGE_ACCUM_SCORE", "name": "吸筹评分", "en": "Accumulation Score",
+        "formula": "组合: 区间下沿放量长下影(吸收) + 回调量递减 + 上涨量递增 + 低量测试; 归一化0..1",
+        "semantics": "因=吸筹过程, 果=牛市趋势 (p25); 天量抛售→低量测底→震仓→长阳带量离开 (p30)", "page_refs": [25, 30, 73, 74]
+      },
+      {
+        "id": "F_RANGE_DIST_SCORE", "name": "派发评分", "en": "Distribution Score",
+        "formula": "组合: 区间上沿放量长上影 + 上涨量递减(需求枯竭) + 下跌量递增; 归一化0..1",
+        "semantics": "派发=主力出货过程 (p59注释6, p29); 顶部供应开始大于需求 (p26)", "page_refs": [26, 29, 59]
+      },
+      {
+        "id": "F_REGIME", "name": "趋势环境质量", "en": "Regime Quality",
+        "formula": "基于价格vs均线斜率 + 量价协调度(阳线放量阴线缩量) + ADX类趋势强度; 归一化0..1, 分类: 熊市/区间/牛市",
+        "semantics": "背景判断先行 (p19); 回调力度大于上涨力度=非牛市特征 (p21)", "page_refs": [19, 21]
+      }
+    ],
+    "composite": [
+      {
+        "id": "F_SUPPLY_DEMAND_IMBALANCE", "name": "供求不平衡度", "en": "Supply-Demand Imbalance",
+        "formula": "delta = upvol_ratio*close_pos*(1+demand_growth) - (1-upvol_ratio)*(1-close_pos)*(1+supply_growth); 映射到[-1,1]",
+        "semantics": ">0=供不应求(看涨), <0=供过于求(看跌); 趋势原动力 (p8)", "page_refs": [8, 24]
+      },
+      {
+        "id": "F_CM_INTENT", "name": "CM意图评分", "en": "CM Intent Score",
+        "formula": "加权组合: 事件因子(SC/ST/Spring/SOS/震仓等) × 置信权重 × 结构评分(吸筹/派发); 输出[-1,1]",
+        "semantics": "+1=CM强力吸筹完成, -1=CM强力派发; 识别吸筹/派发的开始到结束 (p18)", "page_refs": [18, 30]
+      },
+      {
+        "id": "F_RISK_ATR", "name": "波动率基准", "en": "ATR",
+        "formula": "ATR(14) 标准算法",
+        "semantics": "止损/头寸/插针过滤的统一尺度 (温度控制参数基座)", "page_refs": []
+      }
+    ]
+  },
+  "trade_setups": [
+    {
+      "id": "SETUP_SPRING", "name": "Spring 进场",
+      "sequence": ["区间识别(F_TR_LEVELS)", "成功二次测试或熊市终止确认(SC→AR→ST)", "阳线量>阴线量", "Spring出现(EVT_SPRING): 轻微破位直接进场 / 大幅破位+增量等ST"],
+      "entry": "Spring确认K线收盘", "stop": "Spring低点下方 或 温度参数止损", "page_refs": [74, 61]
+    },
+    {
+      "id": "SETUP_ST_BOTTOM", "name": "二次测试进场",
+      "sequence": ["SC出现", "AR后回测低点", "低量小蜡烛ST确认供应枯竭"],
+      "entry": "ST确认收盘", "stop": "SC低点下方", "page_refs": [32, 68, 79]
+    },
+    {
+      "id": "SETUP_SHAKEOUT", "name": "终极震仓进场",
+      "sequence": ["区间底部终极震仓(高量深破)", "直接进场或等低量ST"],
+      "entry": "震仓收回K线收盘", "stop": "震仓低点下方", "page_refs": [119, 121]
+    },
+    {
+      "id": "SETUP_SOS_JOC", "name": "SOS/JOC 突破进场",
+      "sequence": ["区间右边界", "SOS或JOC放量突破", "回调小蜡烛小量确认"],
+      "entry": "回调确认收盘", "stop": "突破K线低点", "page_refs": [49, 60, 61]
+    },
+    {
+      "id": "SETUP_UT_EXIT", "name": "UT 逃顶",
+      "sequence": ["牛市顶: BC后上涨乏力", "UT出现(EVT_UT) + 阴线跟随 + 量递增"],
+      "entry": "空头确认(阴线收盘) 或 平多", "stop": "UT高点上方", "page_refs": [39, 124]
+    },
+    {
+      "id": "SETUP_DEAD_POINT", "name": "死角突破",
+      "sequence": ["死角形态(EVT_DEAD_POINT)", "突破方向放量确认"],
+      "entry": "突破K线收盘", "stop": "死角区间另一侧", "page_refs": [59]
+    }
+  ],
+  "validation_note": "所有因子仅使用 价格/成交量/走势速度 三要素 (p18), 不依赖外部指标; 因子阈值需经温度参数 T∈[0.1,1.0] 插值缩放 (模块3)"
+}

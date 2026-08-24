@@ -1,0 +1,91 @@
+//@version=5
+// WyckoffAnalytics - 威科夫事件可视化终端 v0.1
+// 对应 factor_matrix_v0.1.json 事件: SC/BC/ST/Spring/UT/SOS/SOW/JOC/Shakeout/StopAction
+// 温度参数 T ∈ [0.1, 1.0] 控制: 量能门槛 / 止损幅度 / 突破确认 (与Python引擎同源)
+indicator("WyckoffAnalytics Events v0.1", shorttitle="WA-EV", overlay=true, max_labels_count=500)
+
+// ---------------- 温度参数 (与 config/temperature.json 对齐) ----------------
+T = input.float(0.5, "温度 Temperature T (0.1-1.0)", minval=0.1, maxval=1.0, step=0.05)
+t = (T - 0.1) / 0.9
+vol_z_min = input.float(1.5, "量能Z门槛 (基线)", step=0.1)
+feature_window = input.int(60, "区间识别窗口", minval=40, maxval=90, step=5)
+show_levels = input.bool(true, "显示区间支撑阻力")
+show_regime = input.bool(true, "显示趋势背景")
+
+// ---------------- 基础因子 ----------------
+volMean = ta.sma(volume, 20)
+volStd  = ta.stdev(volume, 20)
+volZ    = (volume - volMean) / (volStd + 1e-9)
+rangePct = (high - low) / close * 100
+bodyRatio = math.abs(close - open) / (math.max(high - low, 1e-9))
+upperWick = (high - math.max(open, close)) / (math.max(high - low, 1e-9))
+lowerWick = (math.min(open, close) - low) / (math.max(high - low, 1e-9))
+atr14 = ta.atr(14)
+medianRange = ta.quantile(rangePct, 50, 50)
+
+// ---------------- 区间支撑阻力 (量加权分位) ----------------
+hiQ = ta.quantile(high, 90, feature_window)
+loQ = ta.quantile(low, 10, feature_window)
+res = ta.sma(hiQ, 5)
+sup = ta.sma(loQ, 5)
+
+// ---------------- 事件判定 (与 core/indicators.py 同逻辑) ----------------
+sma50 = ta.sma(close, 50)
+isBear = close < sma50
+isBull = close > sma50
+wide95 = rangePct > ta.quantile(rangePct, 95, 100)
+wide80 = rangePct > ta.quantile(rangePct, 80, 100)
+
+// EVT_SC 恐慌抛售
+evtSC  = isBear and volZ > 2.0 and wide95 and close < open
+// EVT_BC 抢购高潮
+evtBC  = isBull and volZ > 2.0 and wide95 and close >= open
+// EVT_ST 二次测试 (低量小蜡烛回测低点)
+loMin  = ta.lowest(low, 40)
+evtST  = close <= loMin * 1.03 and volZ < 0 and rangePct < medianRange * 0.6
+// EVT_SPRING 下冲反弹 (跌破支撑后收回)
+pierce = low < sup * 0.985
+recover = close > sup
+evtSpring = pierce and (recover or recover[1] or recover[2] or recover[3])
+// EVT_UT 上冲回落
+pierceUp = high > res * 1.015
+fallBack = close < res
+evtUT = pierceUp and (fallBack or fallBack[1] or fallBack[2] or fallBack[3]) and volume > ta.sma(volume, 10)
+// EVT_SOS 强势出现
+evtSOS = close > res and volZ > vol_z_min and wide80 and close >= open
+// EVT_SOW 弱势出现
+evtSOW = close < sup and volZ > vol_z_min and wide80 and close < open
+// EVT_JOC 跃过小溪
+evtJOC = close > res[1] and volZ > 2.0 and wide95
+// EVT_SHAKEOUT 震仓 (突发深跌后收回)
+loMin30 = ta.lowest(low, 30)
+dropDeep = (loMin30[1] - low) > 2.0 * atr14
+evtShake = dropDeep and (close > loMin30[1] or close[1] > loMin30[1] or close[2] > loMin30[1])
+// EVT_STOP_ACTION 停止行为
+evtStop = low <= sup * 1.02 and bodyRatio < 0.3 and volume >= ta.sma(volume, 10) * 0.9
+
+// ---------------- 温度缩放: 高温放宽确认 ----------------
+confirmBars = math.max(1, math.round(3 - 2 * t))     // T0.1->3根, T1.0->1根
+volGate = volZ >= vol_z_min * (1.5 - 1.0 * t)         // 高温放宽量能门槛
+
+// ---------------- 绘图 ----------------
+plot(show_levels ? res : na, "阻力", color=color.new(color.red, 20), linewidth=1)
+plot(show_levels ? sup : na, "支撑", color=color.new(color.green, 20), linewidth=1)
+
+bgcolor(show_regime and isBull ? color.new(color.green, 92) : show_regime and isBear ? color.new(color.red, 92) : na)
+
+plotshape(evtSC,  "SC",     shape.labelup,   location.belowbar, color.new(color.purple, 0), text="SC",  textcolor=color.white, size=size.small)
+plotshape(evtBC,  "BC",     shape.labeldown, location.abovebar, color.new(color.orange, 0), text="BC",  textcolor=color.white, size=size.small)
+plotshape(evtST,  "ST",     shape.labelup,   location.belowbar, color.new(color.blue, 0),   text="ST",  textcolor=color.white, size=size.small)
+plotshape(evtSpring and volGate, "Spring", shape.labelup, location.belowbar, color.new(color.teal, 0), text="SPRING", textcolor=color.white, size=size.small)
+plotshape(evtUT,  "UT",     shape.labeldown, location.abovebar, color.new(color.fuchsia, 0), text="UT", textcolor=color.white, size=size.small)
+plotshape(evtSOS, "SOS",    shape.labelup,   location.belowbar, color.new(color.lime, 0),  text="SOS",  textcolor=color.black, size=size.small)
+plotshape(evtSOW, "SOW",    shape.labeldown, location.abovebar, color.new(color.maroon, 0), text="SOW", textcolor=color.white, size=size.small)
+plotshape(evtJOC, "JOC",    shape.labelup,   location.belowbar, color.new(color.aqua, 0),  text="JOC",  textcolor=color.black, size=size.small)
+plotshape(evtShake, "Shakeout", shape.labeldown, location.belowbar, color.new(color.navy, 0), text="SHAKE", textcolor=color.white, size=size.small)
+plotshape(evtStop, "StopAction", shape.triangleup, location.belowbar, color.new(color.yellow, 0), size=size.tiny)
+
+// 温度状态面板
+info = "T=" + str.tostring(T, "#.##") + " 确认K线=" + str.tostring(confirmBars) + " 量能门槛=" + str.tostring(vol_z_min * (1.5 - 1.0 * t), "#.##")
+var table tInfo = table.new(position.top_right, 1, 1, bgcolor=color.new(color.black, 60))
+table.cell(tInfo, 0, 0, info, text_color=color.white, text_size=size.small)

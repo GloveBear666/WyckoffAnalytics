@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "documents": [
+    {
+      "file": "wyckoff-analytics-mandarin-v2.pdf",
+      "doc_id": "wyckoff-analytics-mandarin-v2",
+      "status": "ok_ocr",
+      "chars": 335,
+      "pages": 15,
+      "headings_detected": 0,
+      "raw_text": "knowledge\\raw_text\\wyckoff-analytics-mandarin-v2.txt",
+      "chapters": "knowledge\\chapters\\wyckoff-analytics-mandarin-v2.chapters.json",
+      "ocr_lines": 616,
+      "ocr_text": "knowledge/raw_text/wyckoff-analytics-mandarin-v2.ocr.txt"
+    },
+    {
+      "file": "威科夫操盘法.pdf",
+      "doc_id": "威科夫操盘法",
+      "status": "ok",
+      "chars": 114467,
+      "pages": 284,
+      "headings_detected": 1534,
+      "raw_text": "knowledge\\raw_text\\威科夫操盘法.txt",
+      "chapters": "knowledge\\chapters\\威科夫操盘法.chapters.json"
+    }
+  ]
+}

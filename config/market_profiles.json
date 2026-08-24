@@ -1,0 +1,74 @@
+{
+  "$schema_comment": "MARKET_ISOLATION_LAYER - 市场隔离层配置 (架构模块2)",
+  "version": "0.1.0",
+  "profiles": {
+    "CRYPTO_PROFILE": {
+      "market_type": "crypto",
+      "description": "7x24连续交易，高分散性流动性，极端滑点与插针容错",
+      "trading_hours": {
+        "type": "7x24",
+        "rth_only": false
+      },
+      "execution": {
+        "slippage_bps": 12.0,
+        "spread_bps": 8.0,
+        "fee_rate_bps": 10.0,
+        "fee_rate_taker_bps": 10.0,
+        "fee_rate_maker_bps": 2.0,
+        "min_trade_notional_usd": 10.0,
+        "max_position_pct": 0.9
+      },
+      "microstructure": {
+        "wick_filter_mult": 0.6,
+        "wick_max_body_ratio": 2.5,
+        "flash_crash_guard_atr_mult": 8.0,
+        "protection": "极端插针由ATR多倍过滤+滑点放大模型吸收"
+      },
+      "data": {
+        "provider": "ccxt",
+        "preferred_exchanges": ["binance", "okx", "bybit"],
+        "default_timeframe": "1h",
+        "lookback_days": 730
+      },
+      "risk": {
+        "vol_adjust": "动态波动率目标 20% 年化"
+      }
+    },
+    "US_EQUITY_PROFILE": {
+      "market_type": "equity",
+      "description": "仅常规交易时间(RTH)，跳空缺口过滤与中心化做市商微观结构",
+      "trading_hours": {
+        "type": "RTH",
+        "tz": "America/New_York",
+        "open": "09:30",
+        "close": "16:00",
+        "days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        "session_filter": true
+      },
+      "execution": {
+        "slippage_bps": 3.0,
+        "spread_bps": 2.0,
+        "fee_rate_bps": 1.0,
+        "fee_rate_taker_bps": 1.0,
+        "fee_rate_maker_bps": 0.0,
+        "min_trade_notional_usd": 100.0,
+        "max_position_pct": 0.9
+      },
+      "microstructure": {
+        "gap_filter_mult": 1.5,
+        "gap_definition": "开盘价相对昨收跳空 > X*ATR 则跳过入场信号",
+        "volume_surge_filter": true,
+        "mm_quote_behavior": "中心化做市商：开盘/收盘竞价区间不参与信号"
+      },
+      "data": {
+        "provider": "yfinance",
+        "default_timeframe": "1d",
+        "lookback_years": 6,
+        "adjust": "split+dividend adjusted"
+      },
+      "risk": {
+        "vol_adjust": "动态波动率目标 15% 年化"
+      }
+    }
+  }
+}

@@ -1,0 +1,190 @@
+{
+ "protocol": "WALK_FORWARD",
+ "symbol": "BTC/USDT 1d",
+ "profile": "CRYPTO_PROFILE",
+ "n_folds": 4,
+ "n_trials_per_fold": 13,
+ "decay_veto_threshold": 0.3,
+ "htf_enabled": false,
+ "min_trades": 10,
+ "folds": [
+  {
+   "fold": 1,
+   "train_range": [
+    "2021-08-26 00:00:00+00:00",
+    "2022-11-25 00:00:00+00:00"
+   ],
+   "test_range": [
+    "2022-11-26 00:00:00+00:00",
+    "2024-02-24 00:00:00+00:00"
+   ],
+   "best_params": {
+    "T": 0.4370861069626263,
+    "feature_window": 90,
+    "max_bars_hold": 100,
+    "vol_z_min": 1.3177194231349623
+   },
+   "is_metrics": {
+    "total_return": 0.0,
+    "cagr": 0.0,
+    "volatility": 0.0,
+    "sharpe": 0.0,
+    "sortino": 0.0,
+    "max_drawdown": 0.0,
+    "calmar": 0.0,
+    "trades": 0,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "avg_bars_held": 0.0,
+    "gross_profit": 0.0,
+    "gross_loss": 0.0
+   },
+   "oos_metrics": {
+    "total_return": 0.0,
+    "cagr": 0.0,
+    "volatility": 0.0,
+    "sharpe": 0.0,
+    "sortino": 0.0,
+    "max_drawdown": 0.0,
+    "calmar": 0.0,
+    "trades": 0,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "avg_bars_held": 0.0,
+    "gross_profit": 0.0,
+    "gross_loss": 0.0
+   },
+   "decay_calmar": 0.0,
+   "decay_sharpe": 0.0,
+   "decay_return": 0.0
+  },
+  {
+   "fold": 2,
+   "train_range": [
+    "2021-08-26 00:00:00+00:00",
+    "2024-02-24 00:00:00+00:00"
+   ],
+   "test_range": [
+    "2024-02-25 00:00:00+00:00",
+    "2025-05-25 00:00:00+00:00"
+   ],
+   "best_params": {
+    "T": 0.20354910975080107,
+    "feature_window": 70,
+    "max_bars_hold": 30,
+    "vol_z_min": 0.7090023539410929
+   },
+   "is_metrics": {
+    "total_return": 0.002642327432746061,
+    "cagr": 0.0010555156544251876,
+    "volatility": 0.0022621026873826016,
+    "sharpe": 0.46800152683901247,
+    "sortino": 0.0,
+    "max_drawdown": -0.0008315522753985505,
+    "calmar": 1.2693316892426214,
+    "trades": 1,
+    "win_rate": 1.0,
+    "profit_factor": Infinity,
+    "avg_bars_held": 1.0,
+    "gross_profit": 264.23274327460206,
+    "gross_loss": 0.0
+   },
+   "oos_metrics": {
+    "total_return": 0.0,
+    "cagr": 0.0,
+    "volatility": 0.0,
+    "sharpe": 0.0,
+    "sortino": 0.0,
+    "max_drawdown": 0.0,
+    "calmar": 0.0,
+    "trades": 0,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "avg_bars_held": 0.0,
+    "gross_profit": 0.0,
+    "gross_loss": 0.0
+   },
+   "decay_calmar": 1.0,
+   "decay_sharpe": 1.0,
+   "decay_return": 1.0
+  },
+  {
+   "fold": 3,
+   "train_range": [
+    "2021-08-26 00:00:00+00:00",
+    "2025-05-25 00:00:00+00:00"
+   ],
+   "test_range": [
+    "2025-05-26 00:00:00+00:00",
+    "2026-08-24 00:00:00+00:00"
+   ],
+   "best_params": {
+    "T": 0.9897600599934112,
+    "feature_window": 90,
+    "max_bars_hold": 90,
+    "vol_z_min": 0.7587010070109321
+   },
+   "is_metrics": {
+    "total_return": 0.10119293222703152,
+    "cagr": 0.026033495398380513,
+    "volatility": 0.03755227792473357,
+    "sharpe": 0.7036609470433646,
+    "sortino": 0.013662768970660004,
+    "max_drawdown": -0.038258468510813826,
+    "calmar": 0.6804636048361972,
+    "trades": 10,
+    "win_rate": 0.7,
+    "profit_factor": 3.2784684521198773,
+    "avg_bars_held": 12.8,
+    "gross_profit": 14560.563064858801,
+    "gross_loss": 4441.269842155673
+   },
+   "oos_metrics": {
+    "total_return": 0.05412296415647777,
+    "cagr": 0.043093069050639476,
+    "volatility": 0.04442712286711153,
+    "sharpe": 0.9738946004968895,
+    "sortino": 0.035138508247613824,
+    "max_drawdown": -0.030160200370682233,
+    "calmar": 1.4288057944246575,
+    "trades": 10,
+    "win_rate": 0.6,
+    "profit_factor": 2.0161879841454384,
+    "avg_bars_held": 12.1,
+    "gross_profit": 10738.374365879778,
+    "gross_loss": 5326.0779502320265
+   },
+   "decay_calmar": -1.0997534390815848,
+   "decay_sharpe": -0.3840395784205304,
+   "decay_return": 0.46515074753392727
+  }
+ ],
+ "oos_aggregate": {
+  "total_return": 0.05412296415647777,
+  "cagr": 0.014162823818950177,
+  "volatility": 0.0256346694242003,
+  "sharpe": 0.5617916859557918,
+  "sortino": 0.011695699526455222,
+  "max_drawdown": -0.030160200370682233,
+  "calmar": 0.4695865294289426,
+  "trades": 0,
+  "win_rate": 0.0,
+  "profit_factor": 0.0,
+  "avg_bars_held": 0.0,
+  "gross_profit": 0.0,
+  "gross_loss": 0.0
+ },
+ "vetoed": true,
+ "veto_reasons": [
+  {
+   "fold": 2,
+   "reason": "calmar_decay",
+   "decay": 1.0
+  },
+  {
+   "fold": 2,
+   "reason": "sharpe_decay",
+   "decay": 1.0
+  }
+ ]
+}
