@@ -79,6 +79,14 @@
       "created": "20260824_153122",
       "path": "research\\learning_notes\\20260824_153122_v0_2_HTF_iteration_BTC_4h_1d.md",
       "has_failure_reasons": true
+    },
+    {
+      "id": "20260824_154357_v0_3_training_console_github",
+      "topic": "v0.3_training_console_github",
+      "version": "0.3.0",
+      "created": "20260824_154357",
+      "path": "research\\learning_notes\\20260824_154357_v0_3_training_console_github.md",
+      "has_failure_reasons": false
     }
   ]
 }

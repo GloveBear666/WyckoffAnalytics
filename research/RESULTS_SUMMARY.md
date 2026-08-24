@@ -1,6 +1,12 @@
 # WyckoffAnalytics — 系统状态与回测结果总报告
 
-> 更新: 2026-08-24 (v0.2 迭代: HTF多周期确认 + Web可视终端) | 所有结果含完整摩擦模型（手续费+滑点+价差）
+> 更新: 2026-08-24 (v0.3: 本地AI训练台 + GitHub) | 所有结果含完整摩擦模型（手续费+滑点+价差）
+
+## 0. v0.3 新增能力
+
+- **本地 AI 训练台** (Web): `POST /api/train` — 贝叶斯优化 → 全量回测 → **准确率统计**（整体胜率 + 分进场设置胜率）→ Walk-Forward 样本外验证 → 训练历史 `research/training_log.json`（含当前最优轮次标记）；CLI: `python core/training.py`
+- 实测: Web API 首轮训练 BTC 4h+1dHTF → 适应度 0.744, 准确率 65.55%, 验证未否决 ✅
+- **GitHub**: https://github.com/GloveBear666/WyckoffAnalytics (PUBLIC, main) — 含 .gitignore/.gitattributes 跨平台换行、macOS 字体支持、Mac fork 安装指引; 版权 PDF 与提取全文不入库
 
 ## 1. 知识提取层 (模块1) — 完成
 

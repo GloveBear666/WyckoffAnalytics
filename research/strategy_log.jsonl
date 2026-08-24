@@ -9,3 +9,4 @@
 {"action": "pipeline_run", "symbol": "BTC/USDT", "profile": "CRYPTO_PROFILE", "best_params": {"T": 0.9554584254395023, "feature_window": 60, "max_bars_hold": 120, "vol_z_min": 0.3025234027108539}, "vetoed": true, "note": "20260824_153021_BTC_USDT_CRYPTO_PROFILE.md", "ts": "2026-08-24T15:30:21"}
 {"action": "htf_iteration", "symbol": "BTC/USDT", "tf": "4h+1d", "verdict": "PASSED", "note": "20260824_153122_v0_2_HTF_iteration_BTC_4h_1d.md", "ts": "2026-08-24T15:31:22"}
 {"action": "web_terminal", "url": "http://127.0.0.1:8088", "note": "20260824_153122_v0_2_HTF_iteration_BTC_4h_1d.md", "ts": "2026-08-24T15:31:22"}
+{"action": "v0.3_training_web", "round1_accuracy": 0.6555, "github": "https://github.com/GloveBear666/WyckoffAnalytics", "note": "20260824_154357_v0_3_training_console_github.md", "ts": "2026-08-24T15:43:57"}
