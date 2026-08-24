@@ -40,6 +40,26 @@ _MAX_CHART_POINTS = 2000
 _MAX_TRADES = 1000
 
 
+class ApiError(Exception):
+    """业务错误 -> HTTP 400 JSON。"""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
+@app.errorhandler(ApiError)
+def handle_api_error(e: ApiError):
+    return jsonify({"error": e.message}), 400
+
+
+@app.errorhandler(Exception)
+def handle_unexpected(e: Exception):
+    import traceback
+    traceback.print_exc()
+    return jsonify({"error": f"服务器内部错误: {e}"}), 500
+
+
 def _list_datasets() -> list[dict]:
     out = []
     for p in sorted(DATA_DIR.glob("*.parquet")):
@@ -54,7 +74,13 @@ def _list_datasets() -> list[dict]:
 def _get_data(profile: str, symbol: str, tf: str):
     key = (profile, symbol, tf)
     if key not in _DATA_CACHE:
-        _DATA_CACHE[key] = load_data(symbol, profile, tf)
+        try:
+            _DATA_CACHE[key] = load_data(symbol, profile, tf)
+        except Exception as e:  # noqa: BLE001
+            raise ApiError(
+                f"无法获取 {symbol} ({profile}/{tf}): {e}. "
+                f"提示: {symbol} 必须与市场配置匹配 (crypto 用加密货币代码如 BTC/USDT, equity 用美股代码如 AAPL). "
+                f"也可先用 CLI 抓取: python core/data.py --profile {profile} --symbol {symbol} --tf {tf}") from e
     return _DATA_CACHE[key]
 
 
@@ -97,7 +123,8 @@ def temperature():
 @app.post("/api/backtest")
 def backtest():
     body = request.get_json(force=True)
-    profile = PROFILE_MAP[body.get("profile", "crypto")]
+    prof = PROFILE_MAP[body.get("profile", "crypto")]   # 回测配置
+    dprof = body.get("profile", "crypto")               # 数据层 profile
     symbol = body.get("symbol", "BTC/USDT")
     tf = body.get("tf", "1h")
     T = float(body.get("T", 0.5))
@@ -106,10 +133,12 @@ def backtest():
     cd = int(body.get("entry_cooldown", 5))
     htf_tf = body.get("htf_tf")
 
-    df = _get_data(profile, symbol, tf)
-    htf = _get_data(profile, symbol, htf_tf) if htf_tf else None
+    if not symbol or not tf:
+        raise ApiError("缺少 symbol/tf 参数")
+    df = _get_data(dprof, symbol, tf)
+    htf = _get_data(dprof, symbol, htf_tf) if htf_tf else None
     sig = generate_signals(df, T=T, feature_window=fw, entry_cooldown=cd, htf=htf)
-    res = run_backtest(df, sig, T=T, profile=profile, max_bars_hold=mh, entry_cooldown=cd)
+    res = run_backtest(df, sig, T=T, profile=prof, max_bars_hold=mh, entry_cooldown=cd)
 
     dates, eq, dd = _chart_series(res.equity)
     trades = [{
@@ -120,7 +149,7 @@ def backtest():
     } for t in res.trades[:_MAX_TRADES]]
 
     return jsonify({
-        "symbol": symbol, "tf": tf, "htf_tf": htf_tf, "profile": profile,
+        "symbol": symbol, "tf": tf, "htf_tf": htf_tf, "profile": prof,
         "params": {"T": T, "feature_window": fw, "max_bars_hold": mh, "entry_cooldown": cd},
         "metrics": _metric_payload(res.metrics),
         "signals_summary": summarize_signals(sig),
@@ -132,7 +161,8 @@ def backtest():
 @app.post("/api/grid")
 def grid():
     body = request.get_json(force=True)
-    profile = PROFILE_MAP[body.get("profile", "crypto")]
+    prof = PROFILE_MAP[body.get("profile", "crypto")]
+    dprof = body.get("profile", "crypto")
     symbol = body.get("symbol", "BTC/USDT")
     tf = body.get("tf", "1h")
     fw = int(body.get("feature_window", 60))
@@ -140,12 +170,12 @@ def grid():
     cd = int(body.get("entry_cooldown", 5))
     htf_tf = body.get("htf_tf")
 
-    df = _get_data(profile, symbol, tf)
-    htf = _get_data(profile, symbol, htf_tf) if htf_tf else None
+    df = _get_data(dprof, symbol, tf)
+    htf = _get_data(dprof, symbol, htf_tf) if htf_tf else None
     rows = []
     for T in (0.1, 0.3, 0.5, 0.7, 1.0):
         sig = generate_signals(df, T=T, feature_window=fw, entry_cooldown=cd, htf=htf)
-        res = run_backtest(df, sig, T=T, profile=profile, max_bars_hold=mh, entry_cooldown=cd)
+        res = run_backtest(df, sig, T=T, profile=prof, max_bars_hold=mh, entry_cooldown=cd)
         rows.append({"T": T, "metrics": _metric_payload(res.metrics)})
     return jsonify({"rows": rows})
 

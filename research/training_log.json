@@ -98,6 +98,87 @@
      }
     ]
    }
+  },
+  {
+   "ts": "2026-08-24T15:47:12",
+   "symbol": "BTC_USDT",
+   "profile": "CRYPTO_PROFILE",
+   "tf": "1d",
+   "htf_tf": "",
+   "trials": 30,
+   "seed": 42,
+   "best_params": {
+    "T": 0.4370861069626263,
+    "feature_window": 90,
+    "max_bars_hold": 100,
+    "vol_z_min": 1.3177194231349623
+   },
+   "fitness": -1.0,
+   "is_metrics": {
+    "total_return": 0.010159380869962265,
+    "cagr": 0.0020236691090806946,
+    "volatility": 0.0048366965665977086,
+    "sharpe": 0.42061410580799874,
+    "sortino": 0.005875705880051427,
+    "max_drawdown": -0.005851188604592661,
+    "calmar": 0.3458560723016679,
+    "trades": 3,
+    "win_rate": 0.6666666666666666,
+    "profit_factor": 3.8680120483067246,
+    "avg_bars_held": 2.6666666666666665,
+    "gross_profit": 1370.1688467993563,
+    "gross_loss": 354.23075980313104
+   },
+   "accuracy": {
+    "win_rate": 0.6667,
+    "trades": 3,
+    "by_setup": {
+     "SOW": {
+      "trades": 1,
+      "wins": 0,
+      "pnl": -354.23,
+      "win_rate": 0.0
+     },
+     "SPRING": {
+      "trades": 1,
+      "wins": 1,
+      "pnl": 646.91,
+      "win_rate": 1.0
+     },
+     "SOS_JOC": {
+      "trades": 1,
+      "wins": 1,
+      "pnl": 723.26,
+      "win_rate": 1.0
+     }
+    }
+   },
+   "walk_forward": {
+    "vetoed": true,
+    "folds": [
+     {
+      "fold": 1,
+      "is_calmar": 0.0,
+      "oos_calmar": 0.0,
+      "decay": 0.0,
+      "oos_trades": 0
+     },
+     {
+      "fold": 2,
+      "is_calmar": 1.2693316892426214,
+      "oos_calmar": 0.0,
+      "decay": 1.0,
+      "oos_trades": 0
+     },
+     {
+      "fold": 3,
+      "is_calmar": 0.5767659023928695,
+      "oos_calmar": 0.6498908165108536,
+      "decay": -0.12678439175167178,
+      "oos_trades": 14
+     }
+    ]
+   }
   }
  ]
 }

@@ -29,10 +29,13 @@ def _cache_path(symbol: str, profile: str, tf: str) -> Path:
     return DATA_DIR / f"{profile}_{safe}_{tf}.parquet"
 
 
-def fetch_equity(symbol: str, years: int = 6) -> pd.DataFrame:
+def fetch_equity(symbol: str, years: int = 6, tf: str = "1d") -> pd.DataFrame:
     import yfinance as yf
 
-    df = yf.download(symbol, period=f"{years}y", interval="1d",
+    interval = tf if tf in ("1h", "1d", "1wk") else "1d"  # yfinance 无 4h
+    if tf not in ("1h", "1d", "1wk"):
+        print(f"[data] {symbol}: tf={tf} 不受支持, 回退 1d", flush=True)
+    df = yf.download(symbol, period=f"{years}y", interval=interval,
                      auto_adjust=True, progress=False, threads=False)
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
@@ -69,7 +72,7 @@ def load_data(symbol: str, profile: str, tf: str = "1d",
     path = _cache_path(symbol, profile, tf)
     if path.exists() and not force_refresh:
         return pd.read_parquet(path)
-    df = fetch_equity(symbol) if profile == "equity" else fetch_crypto(symbol, tf)
+    df = fetch_equity(symbol, tf=tf) if profile == "equity" else fetch_crypto(symbol, tf)
     df.to_parquet(path)
     return df
 
