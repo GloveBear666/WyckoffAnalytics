@@ -1,0 +1,23 @@
+# ---- Git 与本地缓存 (不进镜像) ----
+.git
+.venv
+venv
+__pycache__
+*.pyc
+*.egg-info
+
+# ---- 数据/研究目录 (由 docker-compose 卷挂载, 持久化在宿主机) ----
+data/
+research/
+web/server.log
+logs/
+
+# ---- 版权源文件 (不入库) ----
+knowledge/sources/
+knowledge/raw_text/
+knowledge/ocr_pages/
+
+# ---- IDE ----
+.vscode/
+.idea/
+.DS_Store

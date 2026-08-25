@@ -1,0 +1,17 @@
+# WyckoffAnalytics 后端 - Mac mini / Linux 服务器 24x7 部署
+# 用法: docker compose up -d --build
+# 数据持久化: ./data (行情缓存) 与 ./research (答题记录/训练历史/学习笔记) 挂载到宿主机, 重建容器不丢失
+services:
+  wyckoff-web:
+    build: .
+    image: wyckoff-web:latest
+    container_name: wyckoff-web
+    ports:
+      - "8088:8088"          # 本机/局域网: http://<主机IP>:8088
+    volumes:
+      - ./data:/app/data
+      - ./research:/app/research
+    environment:
+      - HOST=0.0.0.0
+      - TZ=Asia/Shanghai
+    restart: unless-stopped  # 开机/崩溃自动拉起

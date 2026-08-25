@@ -109,6 +109,17 @@ tailscale serve --bg 8088   # 或 tailscale serve https / http://127.0.0.1:8088
 > ⚠️ **Windows 防火墙**: 局域网/公网访问需放行端口: 管理员 PowerShell 执行
 > `netsh advfirewall firewall add rule name="wyckoff-web" dir=in action=allow protocol=TCP localport=8088`
 
+### 4. 家庭服务器 24×7 (Mac mini / Linux + Docker)
+
+后端无需留在某台电脑上: 仓库已内置 **Dockerfile + docker-compose.yml** (持久卷挂载 `data/` 与 `research/`, 开机自启), 部署到家里的 Mac mini 即可让电脑关机、服务永续:
+
+```bash
+git clone https://github.com/GloveBear666/WyckoffAnalytics.git && cd WyckoffAnalytics
+bash scripts/macmini_deploy.sh    # 自动 pull + 构建 + 启动 + 健康检查
+```
+
+完整指南: [`docs/DEPLOY_MACMINI.md`](docs/DEPLOY_MACMINI.md) · 多设备 GitHub 协作: [`docs/GITHUB_MULTIDEVICE.md`](docs/GITHUB_MULTIDEVICE.md)
+
 ## 在 Mac 上开始 (fork 后)
 
 ```bash

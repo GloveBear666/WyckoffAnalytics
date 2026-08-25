@@ -1,0 +1,9 @@
+# Web 后端运行时依赖 (Docker 镜像精简版)
+# 注: matplotlib/sklearn/pymupdf/rapidocr 等仅用于本地脚本/知识提取, 不需要进镜像
+flask>=3.0
+numpy
+pandas
+optuna
+ccxt
+yfinance
+pyarrow
