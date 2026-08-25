@@ -6,8 +6,8 @@ MARKET_ISOLATION_LAYER - 数据获取层 (架构模块2)
 - CRYPTO_PROFILE: ccxt 小时线 (7x24, 聚合OHLCV)
 缓存到 data/ 目录 (parquet), 幂等。
 用法:
-  python scripts/fetch_data.py --symbol BTC/USDT --profile crypto --tf 1h
-  python scripts/fetch_data.py --symbol SPY AAPL --profile equity
+  python core/data.py --symbol BTC/USDT --profile crypto --tf 1h 4h 1d
+  python core/data.py --symbol SPY AAPL --profile equity --tf 1d
 """
 from __future__ import annotations
 
@@ -81,13 +81,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--symbol", nargs="+", required=True)
     ap.add_argument("--profile", choices=["equity", "crypto"], default="equity")
-    ap.add_argument("--tf", default="1d")
+    ap.add_argument("--tf", nargs="+", default=["1d"], help="一个或多个周期, 如: 1h 4h 1d")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
     for s in args.symbol:
-        df = load_data(s, args.profile, args.tf, force_refresh=args.force)
-        print(f"[data] {s} ({args.profile} {args.tf}): {len(df)} bars, "
-              f"{df.index[0]} -> {df.index[-1]}")
+        for tf in args.tf:
+            df = load_data(s, args.profile, tf, force_refresh=args.force)
+            print(f"[data] {s} ({args.profile} {tf}): {len(df)} bars, "
+                  f"{df.index[0]} -> {df.index[-1]}")
 
 
 if __name__ == "__main__":
