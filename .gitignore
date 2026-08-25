@@ -19,6 +19,10 @@ knowledge/raw_text/
 web/server.log
 logs/
 
+# ---- Vercel 本地链接 (含 orgId/projectId, 不入库; CI 用仓库 Secrets) ----
+.vercel/
+web/static/.vercel/
+
 # ---- IDE / 系统 ----
 .vscode/
 .idea/

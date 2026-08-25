@@ -1,0 +1,31 @@
+# Deploy 静态前端 (web/static) 到 Vercel
+# 每次 push 到 main 自动部署生产环境: https://<project>.vercel.app
+# 所需仓库 Secrets (Actions secrets):
+#   VERCEL_TOKEN      - Vercel 账号 Settings -> Tokens 创建 (不设过期)
+#   VERCEL_ORG_ID     - 执行 `cd web/static && npx vercel link --yes` 后 .vercel/project.json 中的 orgId
+#   VERCEL_PROJECT_ID - 同上 projectId
+name: Deploy Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vercel
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: web/static
