@@ -1,8 +1,10 @@
 # WyckoffAnalytics — 系统状态与回测结果总报告
 
-> 更新: 2026-08-25 (v0.3.3: 答题评测系统) | 所有结果含完整摩擦模型（手续费+滑点+价差）
+> 更新: 2026-08-25 (v0.3.4: 多端部署 GitHub Pages) | 所有结果含完整摩擦模型（手续费+滑点+价差）
 
 ## 0. 新增能力
+
+- **v0.3.4 多端部署**: 前端托管 GitHub Pages (`https://glovebear666.github.io/WyckoffAnalytics/`, Actions 自动部署) + 后端 CORS/0.0.0.0 多客户端访问 (局域网/cloudflared/Tailscale 隧道, 详见 README「部署与多端访问」)
 
 - **v0.3.3 答题评测系统** (Cyborg 第一阶段·试卷盲测, Web 页签): 见 §8
 - **v0.3 本地 AI 训练台** (Web): `POST /api/train` — 贝叶斯优化 → 全量回测 → **准确率统计**（整体胜率 + 分进场设置胜率）→ Walk-Forward 样本外验证 → 训练历史 `research/training_log.json`（含当前最优轮次标记）；CLI: `python core/training.py`
