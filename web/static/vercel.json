@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "name": "wyckoff-analytics",
   "cleanUrls": true,
   "trailingSlash": false
 }

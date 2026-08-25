@@ -68,16 +68,14 @@ python scripts/smoke_test.py
 
 ## 部署与多端访问 (v0.3.5, Vercel)
 
-**架构**: 静态前端托管在 **Vercel** (由 GitHub 仓库自动发布)；后端 Flask 跑在你的电脑上 (`0.0.0.0:8088`, 已启用 CORS)。前端顶部"后端地址"输入框把任意客户端指向你的后端。
+**架构**: 静态前端托管在 **Vercel** (https://wyckoff-analytics.vercel.app, 由 GitHub 仓库自动发布)；后端 Flask 跑在你的电脑上 (`0.0.0.0:8088`, 已启用 CORS)。前端顶部"后端地址"输入框把任意客户端指向你的后端。
 
-### 1. 在 Vercel 上发布前端 (一次配置, 之后每次 push 自动部署)
+### 1. 前端发布 (已配置: GitHub → Vercel 自动部署)
 
-1. 打开 https://vercel.com → **Add New... → Project** → **Import** 本仓库 (`GloveBear666/WyckoffAnalytics`)
-2. 项目设置: Framework Preset 选 **Other** · **Root Directory 填 `web/static`** · 其余默认 → **Deploy**
-3. 部署完成后得到一个 `https://<项目名>.vercel.app` 地址 (可绑定自定义域名)
-4. 之后每次 `git push` 到 main 都会自动重新部署
-
-> 注: `vercel.json` 已就绪 (`cleanUrls`)。若想保留 GitHub Pages 双通道, 可暂不删除 `.github/workflows/pages.yml`; 确定只走 Vercel 后删除该文件即可 (Pages 站点会停止更新)。
+- 线上地址: **https://wyckoff-analytics.vercel.app**
+- 每次 `git push` 到 main, GitHub Actions (`deploy-vercel.yml`) 自动部署生产环境
+- 部署所需的 `VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID` 已存入仓库 Secrets (不会出现在代码中)
+- 重新接入/换账号: Vercel → Add New → Project → Import 本仓库 → Framework **Other** · Root Directory **`web/static`** → Deploy
 
 ### 2. 本机启动后端
 
