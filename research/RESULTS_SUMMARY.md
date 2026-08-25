@@ -4,7 +4,8 @@
 
 ## 0. 新增能力
 
-- **v0.3.4 多端部署**: 前端托管 GitHub Pages (`https://glovebear666.github.io/WyckoffAnalytics/`, Actions 自动部署) + 后端 CORS/0.0.0.0 多客户端访问 (局域网/cloudflared/Tailscale 隧道, 详见 README「部署与多端访问」)
+- **v0.3.5 发布策略**: 前端已托管 **Vercel** (https://wyckoff-analytics.vercel.app) — GitHub Actions 自动部署 (push 即上线, Secrets: VERCEL_TOKEN/ORG_ID/PROJECT_ID); GitHub Pages 工作流已移除
+- **v0.3.4 多端部署**: 后端 CORS/0.0.0.0 多客户端访问 (局域网/cloudflared/Tailscale 隧道, 详见 README「部署与多端访问」)
 
 - **v0.3.3 答题评测系统** (Cyborg 第一阶段·试卷盲测, Web 页签): 见 §8
 - **v0.3 本地 AI 训练台** (Web): `POST /api/train` — 贝叶斯优化 → 全量回测 → **准确率统计**（整体胜率 + 分进场设置胜率）→ Walk-Forward 样本外验证 → 训练历史 `research/training_log.json`（含当前最优轮次标记）；CLI: `python core/training.py`
