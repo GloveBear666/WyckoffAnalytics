@@ -67,7 +67,7 @@
 
 - 学习笔记: `research/learning_notes/` (7篇) · 策略日志: `research/strategy_log.jsonl` · 验证报告: `research/validation/walk_forward_*.json` (5份, 按标的+周期命名)
 
-## 8. 答题评测系统 (Cyborg 第一阶段) — v0.3.3 上线
+## 8. 答题评测系统 (Cyborg 第一阶段) — v0.3.5 上线
 
 **入口**: Web 终端「答题评测」页签 · 核心: `core/quiz.py` · 数据: `research/quiz/`
 
@@ -76,17 +76,18 @@
 | 环节 | 实现 |
 |---|---|
 | 盲盒生成 | 随机起点(会话内去重), 进场价=可见区最后收盘, 建议止损=近20根极值∓0.5×ATR(可改), 载荷不下发未来数据 |
-| 模块1 强弱度 | A绝对强势/B相对强势(→做多) · C混沌(→观望) · D绝对弱势(→做空) |
-| 模块2 努力结果 | A无量空跌/B巨量不跌/C无量反弹/D放量滞涨 (最右端3根, 作为信号标签记录) |
-| 模块3 盈亏比 | A是(SL→TP≥3:1, 交易) / B否(放弃, 记录"如果入场"潜在结果检验克制) |
+| 模块1 背景趋势界定 | A吸筹末期 / B趋势中继 (→做多) · C无序震荡 (→观望) · D顶部派发 (→做空) |
+| 模块2 右侧量价验证 | A供应测试(无量回落) / B被动吸收(巨量承接) / C需求枯竭(无量上行) / D派发受阻(放量滞涨) |
+| 模块3 盈亏空间测算 | A结构成立(SL→TP≥3:1, 交易) / B结构否定(赔率受限, 放弃+潜在结果检验) |
 | 自动批改 | ❌破止损 **0分** (止损优先, 跳空按开盘价成交) · ✅达2R **100分** · ⚠️60根耗尽 **50分** |
 | 标注矩阵 | MFE/MAE 以 R 倍数记录(含出场当根极值), MAE 同时给占止损距离百分比 |
 | 错题分析 | 分模块胜率/均分 · **画饼率**(看对方向却被止损) · 观望检验(双向均无2R=正确) · 错题榜 |
-| 标注导出 | `research/quiz/labels/quiz_labels_*.jsonl`: `[K线矩阵(window,5)] + [人类答案] + [未来真实结果]` |
+| 标注导出 | `research/quiz/labels/quiz_labels_*.jsonl`: `[K线矩阵(window,5)] + [人类答案] + [未来真实结果]`, 每条含 label/explanation 成绩说明; 同步生成 **`*.report.md` 成绩说明报告** (评分规则/成绩汇总/分模块画饼率/认知漏洞检测/结论) |
+| 重置 | `POST /api/quiz/reset` 清空答题记录 (导出文件保留为档案) |
 
-- 冒烟测试: `scripts/quiz_smoke.py` — 做多/做空/观望/盈亏比放弃全路径 + 批改数学断言(TARGET→MFE≥2R, STOP→MAE≥1R) + 未来数据零泄露校验
-- 实测样本: BTC 4h 一轮 15 题 → 平均分 27.8, 完美率 22.2%, 止损率 66.7% (纯随机盲答, 供流程验证, 不具统计意义)
-- API: `POST /api/quiz/new` · `POST /api/quiz/grade` · `GET /api/quiz/stats` · `POST /api/quiz/export` · `GET /api/quiz/labels/<file>`
+- v0.3.5: 三问自然语言化 (背景趋势界定/右侧量价验证/盈亏空间测算, 与用户规范文本逐字对齐); 导出附成绩说明; 新增重置
+- 冒烟测试: `scripts/quiz_smoke.py` — 全路径 + 批改数学断言 + 未来数据零泄露 + 报告章节/重置校验
+- API: `POST /api/quiz/new` · `POST /api/quiz/grade` · `GET /api/quiz/stats` · `POST /api/quiz/reset` · `POST /api/quiz/export` · `GET /api/quiz/labels/<file>`
 
 ## 迭代路线 (v0.4 候选)
 

@@ -21,6 +21,13 @@ sys.path.insert(0, str(ROOT))
 from core.data import load_data
 from core.quiz import QUIZ_DIR, M1, M2, M3, QuizStore
 
+# v0.3.5 自然语言题库校验
+assert M1["A"]["name"] == "吸筹末期" and M1["D"]["name"] == "顶部派发"
+assert M2["A"]["name"] == "供应测试 (无量回落)" and M2["D"]["name"] == "派发受阻 (放量滞涨)"
+assert M3["A"]["name"] == "结构成立 (盈亏比达标)" and M3["B"]["name"] == "结构否定 (盈亏比受限)"
+assert M1["C"]["direction"] == 0 and M1["A"]["direction"] == 1 and M1["D"]["direction"] == -1
+print("[0] 自然语言题库: 模块1 背景趋势界定 / 模块2 右侧量价验证 / 模块3 盈亏空间测算 ✓")
+
 TMP = QUIZ_DIR / "_smoke"
 TMP.mkdir(parents=True, exist_ok=True)
 store = QuizStore(base=TMP)
@@ -71,7 +78,23 @@ rec = json.loads(line)
 assert len(rec["features"]) == 120 and len(rec["features"][0]) == 5
 assert {"m1", "m2", "m3", "direction", "entry"} <= set(rec["human"])
 assert rec["outcome"]["code"] in ("TARGET", "STOP", "TIMEOUT", "NO_TRADE")
+assert rec["outcome"]["label"] and rec["outcome"]["explanation"], "导出必须带成绩说明 (label/explanation)"
 print(f"    首条: features={len(rec['features'])}x{len(rec['features'][0])} human={rec['human']['m1']} "
-      f"outcome={rec['outcome']['code']}  ✓ 黄金数据集格式正确")
+      f"outcome={rec['outcome']['code']} label={rec['outcome']['label']}  ✓ 黄金数据集格式正确")
 
+# v0.3.5 成绩说明报告
+report_path = info["path"].replace(".jsonl", ".report.md")
+assert Path(report_path).exists()
+rt = Path(report_path).read_text(encoding="utf-8")
+for kw in ("评分规则", "成绩汇总", "背景趋势界定", "右侧量价验证", "认知检验", "结论"):
+    assert kw in rt, f"成绩说明缺少章节: {kw}"
+print(f"    成绩说明: {len(rt)} 字符, 含评分规则/分模块画饼率/认知漏洞检测 ✓")
+
+# v0.3.5 重置
+cleared = store.reset()["cleared"]
+assert cleared == 5 and not store.records_file.exists()
+assert store.stats()["stats"]["total"] == 0
+print(f"[5] 重置: 清除 {cleared} 条记录, 统计归零 ✓")
+
+print("[PASS] 答题系统核心层冒烟测试全部通过")
 print("[PASS] 答题系统核心层冒烟测试全部通过")

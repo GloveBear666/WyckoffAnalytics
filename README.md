@@ -66,23 +66,33 @@ python scripts/smoke_test.py
 - 步进分析: 4折 Walk-Forward, 每折 样本内优化 → 样本外检验
 - **否决规则**: OOS 相对 IS 衰减率 (Calmar/Sharpe) > 30% 且 OOS 表现不佳 → 系统自动否决
 
-## 部署与多端访问 (v0.3.4)
+## 部署与多端访问 (v0.3.5, Vercel)
 
-**架构**: 静态前端托管在 **GitHub Pages** (https://glovebear666.github.io/WyckoffAnalytics/)；后端 Flask 跑在你的电脑上 (`0.0.0.0:8088`, 已启用 CORS)。前端顶部"后端地址"输入框把任意客户端指向你的后端。
+**架构**: 静态前端托管在 **Vercel** (由 GitHub 仓库自动发布)；后端 Flask 跑在你的电脑上 (`0.0.0.0:8088`, 已启用 CORS)。前端顶部"后端地址"输入框把任意客户端指向你的后端。
+
+### 1. 在 Vercel 上发布前端 (一次配置, 之后每次 push 自动部署)
+
+1. 打开 https://vercel.com → **Add New... → Project** → **Import** 本仓库 (`GloveBear666/WyckoffAnalytics`)
+2. 项目设置: Framework Preset 选 **Other** · **Root Directory 填 `web/static`** · 其余默认 → **Deploy**
+3. 部署完成后得到一个 `https://<项目名>.vercel.app` 地址 (可绑定自定义域名)
+4. 之后每次 `git push` 到 main 都会自动重新部署
+
+> 注: `vercel.json` 已就绪 (`cleanUrls`)。若想保留 GitHub Pages 双通道, 可暂不删除 `.github/workflows/pages.yml`; 确定只走 Vercel 后删除该文件即可 (Pages 站点会停止更新)。
+
+### 2. 本机启动后端
 
 ```bash
-# 1. 本机启动后端 (默认绑定 0.0.0.0, 局域网可见)
-python web/app.py          # 启动时打印局域网地址 http://<本机IP>:8088
+python web/app.py          # 默认绑定 0.0.0.0:8088, 启动时打印局域网地址 http://<本机IP>:8088
 # 只允许本机: HOST=127.0.0.1 python web/app.py
 ```
 
-**三种客户端访问方式**（可同时使用）:
+### 3. 客户端访问方式（可同时使用）
 
 | 方式 | 地址 | 适用场景 |
 |---|---|---|
 | 🖥 本机 | `http://127.0.0.1:8088` | 桌面浏览器 |
 | 📶 局域网 | `http://<本机IP>:8088` (如 192.168.x.x) | 同一 WiFi 下的手机/平板/另一台电脑 |
-| 🌐 公网 | Pages 页面 + 后端隧道 | 任意网络环境 |
+| 🌐 公网 | Vercel 页面 + 后端隧道 | 任意网络环境 |
 
 **公网访问（二选一）**:
 
@@ -100,8 +110,6 @@ tailscale serve --bg 8088   # 或 tailscale serve https / http://127.0.0.1:8088
 > ⚠️ **混合内容限制**: 网页是 https 时, 后端也必须是 https (用 cloudflared/Tailscale 隧道), 浏览器会拦截 http 混入。局域网方式请直接访问 `http://<IP>:8088` (同源, 无此限制)。
 > ⚠️ **Windows 防火墙**: 局域网/公网访问需放行端口: 管理员 PowerShell 执行
 > `netsh advfirewall firewall add rule name="wyckoff-web" dir=in action=allow protocol=TCP localport=8088`
-
-**Pages 自动更新**: 每次 `git push` 到 main, GitHub Actions 自动把 `web/static/` 部署到 Pages (无需手动操作)。
 
 ## 在 Mac 上开始 (fork 后)
 

@@ -285,6 +285,12 @@ def quiz_stats():
     return jsonify(QUIZ.stats())
 
 
+@app.post("/api/quiz/reset")
+def quiz_reset():
+    """重置答题结果: 清空全部记录与进行中的题目 (导出文件保留为档案)。"""
+    return jsonify(QUIZ.reset())
+
+
 @app.post("/api/quiz/export")
 def quiz_export():
     """导出黄金标注集: [K线矩阵(window,5)] + [人类答案] + [未来真实结果]。"""

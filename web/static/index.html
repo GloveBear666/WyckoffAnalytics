@@ -173,15 +173,18 @@
     <div class="hint">盲盒: 随机截取连续 N 根K线并<b>隐藏未来走势</b>。交卷后揭晓未来, 按三种数学结局批改。</div>
     <div id="qzStatus"></div>
 
-    <div class="sec">📌 模块1 · 当前阶段强弱度</div>
+    <div class="sec">📌 模块1 · 背景趋势界定 (宏观结构/控盘周期)</div>
     <div id="qzM1"></div>
-    <div class="sec">📊 模块2 · 努力与结果 (最右端最新3根K线)</div>
+    <div class="sec">📊 模块2 · 右侧量价验证 (临界区域动态K线组合)</div>
     <div id="qzM2"></div>
-    <div class="sec">🛡️ 模块3 · 盈亏比预判 (SL→第一压力位 TP ≥ 3:1?)</div>
+    <div class="sec">🛡️ 模块3 · 盈亏空间测算 (SL→第一压力位 TP ≥ 3:1?)</div>
     <div id="qzM3"></div>
     <div class="row" style="margin-top:10px"><label>止损价</label><input type="number" id="qzStop" step="any" placeholder="自动建议, 可修改"></div>
     <div id="qzDirHint" class="hint"></div>
-    <div class="row"><button id="btnGrade" class="gold" disabled>✅ 交卷批改</button></div>
+    <div class="row">
+      <button id="btnGrade" class="gold" disabled>✅ 交卷批改</button>
+      <button id="btnQuizReset" class="ghost">🗑 重置答题结果</button>
+    </div>
   </div>
 
   <div class="panel" style="flex:1;min-width:560px">
@@ -473,27 +476,28 @@ async function loadHistory() {
 // ---------- 答题评测页 (Cyborg 试卷盲测) ----------
 const QZ = { item: null, graded: false };
 const QZ_M1 = {
-  A: ['绝对强势', '吸筹尾声/启动前夜: 供需失衡, 供应消耗殆尽 (高胜率做多点)', 1],
-  B: ['相对强势', '趋势中继回踩: Markup 正常缩量回调 (中胜率加仓点)', 1],
-  C: ['混沌状态', '震荡市/无主力: 量价随机, 无主力控盘痕迹 (观望)', 0],
-  D: ['绝对弱势', '派发阶段/出货完毕: 大量大阴线, 努力与结果背离 (高胜率做空点)', -1],
+  A: ['吸筹末期', '背景趋势界定: 底部构造收尾, 供应彻底枯竭, 具备向上突破预期。', 1, '做多'],
+  B: ['趋势中继', '上升趋势确认, 当前处于缩量回调与筹码沉淀阶段。', 1, '做多'],
+  C: ['无序震荡', '量价分布呈现随机性, 无明确主导资金介入痕迹。', 0, '观望'],
+  D: ['顶部派发', '高位宽幅震荡伴随异常放量, 呈现资金撤离特征。', -1, '做空'],
 };
 const QZ_M2 = {
-  A: ['无量空跌', 'No Supply Test: 创新低/回踩但量极度萎缩 (无人抛售)'],
-  B: ['巨量不跌', 'Buying Absorb: 巨量且收盘在K线上中部 (主力暗中接盘)'],
-  C: ['无量反弹', 'No Demand: 上涨但量极度萎缩 (散户跟风, 假突破预警)'],
-  D: ['放量滞涨', 'Distribution: 巨量但实体小留长上影 (高位抛压)'],
+  A: ['供应测试 (无量回落)', '价格回探关键支撑, 成交量极度萎缩, 验证抛压耗尽。'],
+  B: ['被动吸收 (巨量承接)', '下跌波段末端涌现异常放量, K线实体收缩且企稳, 显现底部承接。'],
+  C: ['需求枯竭 (无量上行)', '向上试探阻力位, 成交量显著萎缩, 缺乏购买力支撑。'],
+  D: ['派发受阻 (放量滞涨)', '上升波段出现异常放量, 实体狭窄或留长上影线, 遭遇卖盘伏击。'],
 };
 const QZ_M3 = {
-  A: ['是', 'SL 到第一压力位 TP 盈亏比 ≥ 3:1 (完美点位)'],
-  B: ['否', '方向看对但空间狭窄, 不值得冒险'],
+  A: ['结构成立 (盈亏比达标)', '进场点至逻辑失效位(SL)与第一阻力位(TP)的空间比率 ≥ 3:1, 具备执行价值。'],
+  B: ['结构否定 (盈亏比受限)', '方向判断成立, 但止损跨度过大或上方运行空间受限, 赔率不符合风控标准。'],
 };
 
 function buildRadios(containerId, opts, group) {
   $(containerId).innerHTML = Object.entries(opts).map(([k, v]) => `
     <label style="display:flex;gap:6px;align-items:flex-start;margin-bottom:6px;min-width:0;cursor:pointer">
       <input type="radio" name="${group}" value="${k}" style="margin-top:2px">
-      <span><b>${k}. ${esc(v[0])}</b><br><span style="color:var(--dim);font-size:11px">${esc(v[1])}</span></span>
+      <span><b>${k}. ${esc(v[0])}</b>${v[3] ? `<span class="chip" style="background:rgba(88,166,255,.15);color:var(--acc)">→ ${v[3]}</span>` : ''}
+        <br><span style="color:var(--dim);font-size:11px">${esc(v[1])}</span></span>
     </label>`).join('');
 }
 
@@ -515,10 +519,10 @@ function qzSyncStop() {
     else if (d === -1) stop.value = QZ.item.default_stop_short;
   }
   const hint = $('qzDirHint');
-  if (d === null) hint.textContent = '请先选择模块1 (判断当前强弱度)';
+  if (d === null) hint.textContent = '请先选择模块1 (界定当前控盘周期)';
   else if (d === 1) hint.innerHTML = '→ 预测方向: <b style="color:var(--up)">做多</b> · 进场价 = 最新收盘价 (可见K线最后一根收盘)';
   else if (d === -1) hint.innerHTML = '→ 预测方向: <b style="color:var(--down)">做空</b> · 进场价 = 最新收盘价 (可见K线最后一根收盘)';
-  else hint.innerHTML = '→ 混沌状态: 观望, 不交易 (仍可观察揭晓后的真实行情检验判断)';
+  else hint.innerHTML = '→ 无序震荡: 观望, 不交易 (仍可观察揭晓后的真实行情检验判断)';
   $('btnGrade').disabled = !QZ.item || QZ.graded;
 }
 
@@ -655,29 +659,29 @@ function renderQuizStats(s) {
   const cardHtml = '<div class="metrics" style="margin:6px 0">' + cards.map(([k, v]) =>
     `<div class="mcard"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('') + '</div>';
 
-  const row = (g, k) => g[k] && g[k].n > 0 ? `<tr><td>${k}</td><td>${g[k].n}</td><td>${g[k].target}</td>
+  const row = (g, k, label) => g[k] && g[k].n > 0 ? `<tr><td>${label || k}</td><td>${g[k].n}</td><td>${g[k].target}</td>
     <td>${g[k].stop}</td><td>${g[k].timeout}</td><td>${pct(g[k].win_rate, 1)}</td>
     <td>${fmt(g[k].avg_score)}</td><td class="${g[k].pie_rate > 0.4 ? 'neg' : ''}">${pct(g[k].pie_rate, 1)}</td></tr>` : '';
-  const m1Rows = Object.keys(s.by_m1).map(k => row(s.by_m1, k)).join('');
-  const m2Rows = Object.keys(s.by_m2).map(k => row(s.by_m2, k)).join('');
+  const m1Rows = Object.keys(s.by_m1).map(k => row(s.by_m1, k, `${k} ${QZ_M1[k][0]}`)).join('');
+  const m2Rows = Object.keys(s.by_m2).map(k => row(s.by_m2, k, `${k} ${QZ_M2[k][0]}`)).join('');
   const b3 = s.m3_B;
   const abs = s.abstain;
   const wrongRows = s.wrong_top.map(r => `<tr>
     <td>${esc(r.ts.slice(5, 16).replace('T', ' '))}</td>
     <td>${esc(r.symbol)} ${r.tf}</td>
-    <td>${r.m1}</td><td>${r.m2}</td><td>${r.m3}</td>
+    <td>${r.m1} ${QZ_M1[r.m1] ? QZ_M1[r.m1][0] : ''}</td><td>${r.m2} ${QZ_M2[r.m2] ? QZ_M2[r.m2][0] : ''}</td><td>${r.m3}</td>
     <td>${fmt(r.mfe_r)}R</td><td>${esc(r.start_dt.slice(0, 10))}</td></tr>`).join('');
 
   $('qzStats').innerHTML = cardHtml + `
-    <div class="sec">按模块1 强弱度 (画饼率 = 看对方向却被止损)</div>
+    <div class="sec">模块1 · 背景趋势界定 (画饼率 = 看对方向却被止损)</div>
     <table><tr><th>选项</th><th>交易</th><th>完美</th><th>止损</th><th>平局</th><th>胜率</th><th>均分</th><th>画饼率</th></tr>${m1Rows || '<tr><td colspan=8>暂无交易数据</td></tr>'}</table>
-    <div class="sec">按模块2 努力与结果信号</div>
+    <div class="sec">模块2 · 右侧量价验证</div>
     <table><tr><th>选项</th><th>交易</th><th>完美</th><th>止损</th><th>平局</th><th>胜率</th><th>均分</th><th>画饼率</th></tr>${m2Rows || '<tr><td colspan=8>暂无数据</td></tr>'}</table>
-    <div class="sec">模块3 盈亏比过滤 (克制检验)</div>
+    <div class="sec">模块3 · 盈亏空间测算 (风控检验)</div>
     <table><tr><th>判定</th><th>数量</th><th>正确克制/错过机会</th></tr>
-      <tr><td>A 是 (交易)</td><td>${st.graded}</td><td>胜率见上表</td></tr>
-      <tr><td>B 否 (放弃)</td><td>${b3.n}</td><td>错过≥2R机会 <b class="neg">${b3.missed}</b> · 正确克制 <b class="pos">${b3.correct}</b></td></tr></table>
-    <div class="sec">观望检验 (混沌判断)</div>
+      <tr><td>A 结构成立 (交易)</td><td>${st.graded}</td><td>胜率见上表</td></tr>
+      <tr><td>B 结构否定 (放弃)</td><td>${b3.n}</td><td>错过≥2R机会 <b class="neg">${b3.missed}</b> · 正确克制 <b class="pos">${b3.correct}</b></td></tr></table>
+    <div class="sec">观望检验 (无序震荡判断)</div>
     <table><tr><th>数量</th><th>正确观望 (双向无2R)</th><th>错过行情</th></tr>
       <tr><td>${abs.n}</td><td class="pos">${abs.correct}</td><td class="neg">${abs.n - abs.correct}</td></tr></table>
     <div class="sec">错题榜 (最近被止损的题目)</div>
@@ -723,9 +727,27 @@ async function exportLabels() {
   try {
     const r = await api('/api/quiz/export', {});
     $('qzStatus').innerHTML = `标注集已导出: <b>${r.count}</b> 条 → ${esc(r.file)} ` +
-      `<a href="${API_BASE}${r.url}" style="color:var(--acc)">⬇ 下载</a> (黄金数据集, 供 AI 训练)`;
+      `<a href="${API_BASE}${r.url}" style="color:var(--acc)">⬇ 标注集</a> · ` +
+      `<a href="${API_BASE}/api/quiz/labels/${r.report_file}" style="color:var(--acc)">⬇ 成绩说明</a> (黄金数据集, 供 AI 训练)`;
+    $('qzResult').innerHTML = `<div class="banner" style="border-color:var(--acc)">
+      <b>📄 成绩说明</b> — ${r.report_text.split('\n').filter(l => l.startsWith('- ')).slice(0, 6).map(l => esc(l)).join('<br>')}
+      <div style="margin-top:6px;font-size:12px;color:var(--dim)">完整报告含评分规则/分模块画饼率/认知漏洞检测, 已随标注集一起生成: <b>${esc(r.report_file)}</b></div></div>`;
+    await loadQuizStats();
   } catch (e) { $('qzStatus').textContent = '导出错误: ' + e.message; }
   finally { $('btnQuizExport').disabled = false; }
+}
+
+async function resetQuiz() {
+  if (!confirm('确定要清空全部答题记录吗? 已导出的标注文件将保留为档案。')) return;
+  try {
+    const r = await api('/api/quiz/reset', {});
+    QZ.item = null; QZ.graded = false;
+    $('qzResult').innerHTML = ''; $('qzStats').innerHTML = ''; $('qzChart').getContext('2d').clearRect(0, 0, 9999, 9999);
+    document.querySelectorAll('input[name=qzM1],input[name=qzM2],input[name=qzM3]').forEach(x => x.checked = false);
+    $('qzStatus').textContent = `已重置: 清除了 ${r.cleared} 条答题记录`;
+    qzSyncStop();
+    await loadQuizStats();
+  } catch (e) { $('qzStatus').textContent = '重置失败: ' + e.message; }
 }
 
 buildRadios('qzM1', QZ_M1, 'qzM1');
@@ -735,6 +757,7 @@ document.querySelectorAll('input[name=qzM1]').forEach(r => r.addEventListener('c
 $('btnNewQuiz').addEventListener('click', newQuizItem);
 $('btnGrade').addEventListener('click', submitQuiz);
 $('btnQuizExport').addEventListener('click', exportLabels);
+$('btnQuizReset').addEventListener('click', resetQuiz);
 
 // ---------- 初始化 ----------
 (async () => {

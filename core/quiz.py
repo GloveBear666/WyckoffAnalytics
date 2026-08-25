@@ -34,23 +34,27 @@ QUIZ_DIR = ROOT / "research" / "quiz"
 LABEL_DIR = QUIZ_DIR / "labels"
 
 # --------------------------------------------------------------------------
-# 理论框架 (与 Summary 文档逐字对齐)
+# 理论框架 (v0.3.5 自然语言化, 三问结构: 背景趋势界定 / 右侧量价验证 / 盈亏空间测算)
 # --------------------------------------------------------------------------
 M1 = {
-    "A": {"name": "绝对强势", "desc": "吸筹尾声/启动前夜: 供需失衡, 供应消耗殆尽 (高胜率做多点)", "direction": 1},
-    "B": {"name": "相对强势", "desc": "趋势中继回踩: Markup 阶段的正常缩量回调 (中胜率加仓点)", "direction": 1},
-    "C": {"name": "混沌状态", "desc": "震荡市/无主力: 量价随机, 无主力控盘痕迹 (观望)", "direction": 0},
-    "D": {"name": "绝对弱势", "desc": "派发阶段/出货完毕: 大量大阴线, 努力与结果严重背离 (高胜率做空点)", "direction": -1},
+    "A": {"name": "吸筹末期", "desc": "背景趋势界定: 底部构造收尾, 供应彻底枯竭, 具备向上突破预期。",
+          "direction": 1, "action": "做多"},
+    "B": {"name": "趋势中继", "desc": "上升趋势确认, 当前处于缩量回调与筹码沉淀阶段。",
+          "direction": 1, "action": "做多"},
+    "C": {"name": "无序震荡", "desc": "量价分布呈现随机性, 无明确主导资金介入痕迹。",
+          "direction": 0, "action": "观望"},
+    "D": {"name": "顶部派发", "desc": "高位宽幅震荡伴随异常放量, 呈现资金撤离特征。",
+          "direction": -1, "action": "做空"},
 }
 M2 = {
-    "A": {"name": "无量空跌", "desc": "No Supply Test: 价格创新低或回踩, 成交量极度萎缩 (无人抛售)"},
-    "B": {"name": "巨量不跌", "desc": "Buying Absorb: 成交量巨大且收盘在K线上中部 (主力暗中接盘)"},
-    "C": {"name": "无量反弹", "desc": "No Demand: 价格上涨, 成交量极度萎缩 (散户跟风, 假突破预警)"},
-    "D": {"name": "放量滞涨", "desc": "Distribution: 成交量巨大, 实体小且留长上影线 (高位抛压)"},
+    "A": {"name": "供应测试 (无量回落)", "desc": "价格回探关键支撑, 成交量极度萎缩, 验证抛压耗尽。"},
+    "B": {"name": "被动吸收 (巨量承接)", "desc": "下跌波段末端涌现异常放量, K线实体收缩且企稳, 显现底部承接。"},
+    "C": {"name": "需求枯竭 (无量上行)", "desc": "向上试探阻力位, 成交量显著萎缩, 缺乏购买力支撑。"},
+    "D": {"name": "派发受阻 (放量滞涨)", "desc": "上升波段出现异常放量, 实体狭窄或留长上影线, 遭遇卖盘伏击。"},
 }
 M3 = {
-    "A": {"name": "是", "desc": "技术止损位(SL)到第一压力位(TP)盈亏比 >= 3:1 (完美点位)"},
-    "B": {"name": "否", "desc": "方向看对但空间狭窄, 不值得冒险"},
+    "A": {"name": "结构成立 (盈亏比达标)", "desc": "进场点至逻辑失效位(SL)与第一阻力位(TP)的空间比率 ≥ 3:1, 具备执行价值。"},
+    "B": {"name": "结构否定 (盈亏比受限)", "desc": "方向判断成立, 但止损跨度过大或上方运行空间受限, 赔率不符合风控标准。"},
 }
 OUTCOME = {
     "STOP":    {"label": "绝对错误 (Stopped Out)",          "score": 0,   "icon": "❌",
@@ -214,8 +218,8 @@ class QuizStore:
         }
 
         if direction == 0 or m3 == "B":
-            # 观望 (混沌) 或 空间不足: 不交易, 但记录"如果入场"的潜在结果, 检验克制是否正确
-            reason = "混沌状态观望" if direction == 0 else "盈亏比不足(空间狭窄) 放弃"
+            # 无序震荡 或 结构否定: 不交易, 但记录"如果入场"的潜在结果, 检验克制是否正确
+            reason = "无序震荡观望" if direction == 0 else "结构否定(盈亏比受限) 放弃"
             sl = _simulate(item["future_bars"], entry, 1, item["default_stop_long"])
             ss = _simulate(item["future_bars"], entry, -1, item["default_stop_short"])
             abstain_ok = sl["mfe_r"] < TARGET_R and ss["mfe_r"] < TARGET_R
@@ -297,8 +301,8 @@ class QuizStore:
             "pie_rate": round(stop / n, 4),   # 画饼率: 看对方向却被止损 (认知漏洞检测)
         }
 
-    def stats(self) -> dict:
-        records = self.load_records()
+    def stats(self, records: list[dict] | None = None) -> dict:
+        records = self.load_records() if records is None else records
         graded = [r for r in records if r.get("outcome") != "NO_TRADE"]
         n = len(graded)
 
@@ -328,6 +332,7 @@ class QuizStore:
         return {
             "stats": base,
             "by_m1": by_m1, "by_m2": by_m2,
+            "by_m3": {"A": self._group(graded, "m3", "A")},
             "m3_B": {"n": len(abst), "missed": missed, "correct": len(abst) - missed},
             "abstain": {"n": len(abstain),
                         "correct": sum(1 for r in abstain if r.get("abstain_ok"))},
@@ -335,7 +340,18 @@ class QuizStore:
             "wrong_top": wrong_top,
         }
 
-    # ---------------- 标注集导出 (AI 训练燃料) ----------------
+    # ---------------- 重置答题结果 ----------------
+    def reset(self) -> dict:
+        """清空全部答题记录与进行中的题目。"""
+        n = 0
+        if self.records_file.exists():
+            n = sum(1 for _ in self.records_file.open("r", encoding="utf-8"))
+            self.records_file.unlink()
+        self.items.clear()
+        self._used.clear()
+        return {"cleared": n}
+
+    # ---------------- 标注集导出 (AI 训练燃料 + 成绩说明) ----------------
     def export(self, symbol: str | None = None, tf: str | None = None) -> dict:
         records = self.load_records()
         if symbol:
@@ -356,10 +372,92 @@ class QuizStore:
                     "human": {"m1": r["m1"], "m2": r["m2"], "m3": r["m3"],
                               "direction": r["direction"], "entry": r["entry"],
                               "stop": r.get("stop")},
-                    "outcome": {"code": r["outcome"], "score": r.get("score"),
+                    "outcome": {"code": r["outcome"],
+                                "label": OUTCOME.get(r["outcome"], {}).get("label"),
+                                "explanation": OUTCOME.get(r["outcome"], {}).get("logic"),
+                                "score": r.get("score"),
                                 "mfe_r": r.get("mfe_r"), "mae_r": r.get("mae_r"),
                                 "exit_dt": r.get("exit_dt"), "exit_price": r.get("exit_price"),
                                 "bars_held": r.get("bars_held")},
                 }
+                if r.get("reason"):
+                    line["outcome"]["reason"] = r["reason"]
                 f.write(json.dumps(line, ensure_ascii=False) + "\n")
-        return {"file": fname, "count": len(records), "path": str(path)}
+        # 成绩说明 (报告 + 评分规则 + 错题分析)
+        report = self._build_report(records)
+        rname = fname.replace(".jsonl", ".report.md")
+        (self.label_dir / rname).write_text(report["text"], encoding="utf-8")
+        report["file"] = rname
+        return {"file": fname, "count": len(records), "path": str(path),
+                "report_file": rname, "report_text": report["text"], "report": report["summary"]}
+
+    def _build_report(self, records: list[dict]) -> dict:
+        st = self.stats(records)
+        b = st["stats"]
+        L: list[str] = []
+        L.append("# 答题成绩说明 (Wyckoff Quiz Report)")
+        L.append("")
+        L.append(f"- 记录总数: **{b['total']}** 条 (交易 **{b['graded']}** 笔, 观望/放弃 **{b['no_trade']}** 条)")
+        L.append("")
+        L.append("## 评分规则 (自动批改, 止损优先)")
+        L.append("")
+        L.append("| 结局 | 判定条件 | 分值 | 底层逻辑 |")
+        L.append("|---|---|---|---|")
+        L.append("| ✅ 完美正确 | 触及止损前, 最高价达到 2R 目标 | 100 | 准确抓住启动点, 风控留有安全空间 |")
+        L.append("| ❌ 绝对错误 | 未来K线最低价跌破预设止损价 | 0 | 过程破位即被风控出局, 进场点判断错误 |")
+        L.append("| ⚠️ 尴尬平局 | 未来走完, 未破止损也未达 2R | 50 | 误判震荡中继为启动点, 浪费资金时间成本 |")
+        L.append("| 🚫 观望 | 无序震荡 / 结构否定, 未交易 | — | 记录潜在结果, 检验克制是否正确 |")
+        L.append("")
+        if b["graded"]:
+            L.append("## 成绩汇总")
+            L.append("")
+            L.append(f"- 平均分: **{b['avg_score']}** / 100")
+            L.append(f"- 完美率: **{b['perfect_rate'] * 100:.1f}%** · 止损率: **{b['stop_rate'] * 100:.1f}%** · 平局率: **{b['timeout_rate'] * 100:.1f}%**")
+            L.append(f"- 平均 MFE: **+{b['avg_mfe_r']}R** · 平均 MAE: **-{b['avg_mae_r']}R** (占止损距离 {b['avg_mae_pct']}%)")
+            L.append("")
+            L.append("## 模块1 · 背景趋势界定 (画饼率 = 看对方向却被止损)")
+            L.append("")
+            L.append("| 选项 | 交易 | 完美 | 止损 | 平局 | 胜率 | 均分 | 画饼率 |")
+            L.append("|---|---|---|---|---|---|---|---|")
+            for k, v in st["by_m1"].items():
+                if v["n"] == 0:
+                    continue
+                L.append(f"| {k} {M1[k]['name']} | {v['n']} | {v['target']} | {v['stop']} | {v['timeout']} | "
+                         f"{v['win_rate'] * 100:.1f}% | {v['avg_score']} | {v['pie_rate'] * 100:.1f}% |")
+            L.append("")
+            L.append("## 模块2 · 右侧量价验证")
+            L.append("")
+            L.append("| 选项 | 交易 | 完美 | 止损 | 平局 | 胜率 | 均分 | 画饼率 |")
+            L.append("|---|---|---|---|---|---|---|---|")
+            for k, v in st["by_m2"].items():
+                if v["n"] == 0:
+                    continue
+                L.append(f"| {k} {M2[k]['name']} | {v['n']} | {v['target']} | {v['stop']} | {v['timeout']} | "
+                         f"{v['win_rate'] * 100:.1f}% | {v['avg_score']} | {v['pie_rate'] * 100:.1f}% |")
+        L.append("")
+        L.append("## 认知检验 (Cyborg 第二章 错题分析)")
+        L.append("")
+        worst = max((k for k in M1 if st["by_m1"][k]["n"] > 0),
+                    key=lambda k: st["by_m1"][k]["pie_rate"] or 0, default=None)
+        if worst and st["by_m1"][worst]["n"] >= 3:
+            p = st["by_m1"][worst]["pie_rate"] * 100
+            L.append(f"- 🔍 **最大认知漏洞**: 模块1「{M1[worst]['name']}」画饼率 {p:.0f}% — 自认该形态却多数被止损, "
+                     f"建议对比成功样本的量价细节 (如成交量萎缩程度), 修正判断标准后重新测试。")
+        else:
+            L.append(f"- 🔍 样本量不足 (每个选项 ≥3 笔) 时无法可靠检测认知漏洞, 建议先完成更多答题。")
+        L.append(f"- 🧘 观望检验: **{st['abstain']['correct']}/{st['abstain']['n']}** 正确 (双向均无 ≥2R 行情)")
+        L.append(f"- 🛡️ 克制检验 (模块3选B): 错过 ≥2R 机会 **{st['m3_B']['missed']}** 次 / 正确克制 **{st['m3_B']['correct']}** 次")
+        L.append("")
+        L.append("## 结论")
+        L.append("")
+        if b["graded"] and (b["perfect_rate"] or 0) >= 0.5:
+            L.append("> 胜率与赔率结构健康, 该批判断可沉淀为 AI 标注集 (黄金数据集), 进入下一轮迭代。")
+        elif b["graded"]:
+            L.append("> 尚存系统性认知偏差, 建议针对错题修正判断标准后, 开始下一轮盲测 (迭代试卷)。")
+        else:
+            L.append("> 暂无交易记录, 继续完成盲测答题以积累标注数据。")
+        L.append("")
+        L.append("---")
+        L.append("*由 WyckoffAnalytics KNOWLEDGE_MANAGEMENT_LAYER 生成*")
+        return {"text": "\n".join(L), "summary": {"total": b["total"], "graded": b["graded"],
+                                                   "avg_score": b["avg_score"]}}
