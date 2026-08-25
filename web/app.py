@@ -26,6 +26,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 from core.backtest import run_backtest
 from core.data import load_data
+from core.quiz import M1, M2, M3, QuizStore
 from core.signals import generate_signals, summarize_signals, temperature_params
 from core.training import train_round, training_history
 
@@ -38,6 +39,7 @@ DATA_DIR = ROOT / "data"
 _DATA_CACHE: dict = {}
 _MAX_CHART_POINTS = 2000
 _MAX_TRADES = 1000
+QUIZ = QuizStore()
 
 
 class ApiError(Exception):
@@ -204,6 +206,57 @@ def train():
 def train_history():
     """训练历史 + 当前最优轮次。"""
     return jsonify(training_history())
+
+
+# ============================ 答题评测系统 (Cyborg 第一阶段) ============================
+
+@app.post("/api/quiz/new")
+def quiz_new():
+    """随机截取盲盒: 隐藏未来走势, 仅下发可见 window 根K线。"""
+    body = request.get_json(force=True)
+    profile = body.get("profile", "crypto")
+    symbol = body.get("symbol", "BTC/USDT")
+    tf = body.get("tf", "4h")
+    window = int(min(max(int(body.get("window", 120)), 30), 500))
+    future = int(min(max(int(body.get("future", 60)), 20), 300))
+    df = _get_data(profile, symbol, tf)
+    return jsonify(QUIZ.new_item(df, window=window, future=future, key=(profile, symbol, tf)))
+
+
+@app.post("/api/quiz/grade")
+def quiz_grade():
+    """自动批改: 未来 N 根K线追踪, 三种冷酷数学结局 + MFE/MAE。"""
+    body = request.get_json(force=True)
+    item_id = body.get("item_id")
+    try:
+        payload = QUIZ.grade(item_id, body.get("m1"), body.get("m2"), body.get("m3"),
+                             body.get("stop"))
+    except ValueError as e:
+        raise ApiError(str(e)) from e
+    return jsonify(payload)
+
+
+@app.get("/api/quiz/stats")
+def quiz_stats():
+    """成绩统计 + 错题分析 (画饼检测 / 按模块准确率 / 观望检验)。"""
+    return jsonify(QUIZ.stats())
+
+
+@app.post("/api/quiz/export")
+def quiz_export():
+    """导出黄金标注集: [K线矩阵(window,5)] + [人类答案] + [未来真实结果]。"""
+    body = request.get_json(force=True) or {}
+    try:
+        info = QUIZ.export(body.get("symbol"), body.get("tf"))
+    except ValueError as e:
+        raise ApiError(str(e)) from e
+    info["url"] = f"/api/quiz/labels/{info['file']}"
+    return jsonify(info)
+
+
+@app.get("/api/quiz/labels/<name>")
+def quiz_labels_download(name: str):
+    return send_from_directory(str(QUIZ.label_dir), name, as_attachment=True)
 
 
 if __name__ == "__main__":

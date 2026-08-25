@@ -69,11 +69,12 @@
 </head>
 <body>
 <h1>WyckoffAnalytics · 威科夫动态参数化交易终端</h1>
-<div class="sub">温度控制 T∈[0.1,1.0] · 摩擦模型回测 · 多周期 HTF 确认 · 本地 AI 训练</div>
+<div class="sub">温度控制 T∈[0.1,1.0] · 摩擦模型回测 · 多周期 HTF 确认 · 本地 AI 训练 · 试卷盲测答题</div>
 
 <div class="tabs">
   <div class="tab active" data-tab="bt">回测</div>
   <div class="tab" data-tab="train">AI 训练</div>
+  <div class="tab" data-tab="quiz">答题评测</div>
 </div>
 
 <!-- ==================== 回测页 ==================== -->
@@ -146,6 +147,46 @@
 </div>
 </div>
 
+<!-- ==================== 答题评测页 (Cyborg 试卷盲测) ==================== -->
+<div id="tab-quiz" style="display:none">
+<div class="layout">
+  <div class="panel" id="ctrlQuiz">
+    <div class="row"><label>标的/周期</label>
+      <select id="qzSymbol"></select><select id="qzTf"></select>
+      <select id="qzProfile" style="flex:0 0 auto">
+        <option value="crypto">CRYPTO</option>
+        <option value="equity">EQUITY</option>
+      </select>
+    </div>
+    <div class="row"><label>盲盒窗口</label><input type="number" id="qzWindow" value="120" min="30" max="500" step="10"></div>
+    <div class="row"><label>未来验证</label><input type="number" id="qzFuture" value="60" min="20" max="300" step="10"></div>
+    <div class="row">
+      <button id="btnNewQuiz">🎲 抽取盲盒</button>
+      <button id="btnQuizExport" class="ghost">导出标注集</button>
+    </div>
+    <div class="hint">盲盒: 随机截取连续 N 根K线并<b>隐藏未来走势</b>。交卷后揭晓未来, 按三种数学结局批改。</div>
+    <div id="qzStatus"></div>
+
+    <div class="sec">📌 模块1 · 当前阶段强弱度</div>
+    <div id="qzM1"></div>
+    <div class="sec">📊 模块2 · 努力与结果 (最右端最新3根K线)</div>
+    <div id="qzM2"></div>
+    <div class="sec">🛡️ 模块3 · 盈亏比预判 (SL→第一压力位 TP ≥ 3:1?)</div>
+    <div id="qzM3"></div>
+    <div class="row" style="margin-top:10px"><label>止损价</label><input type="number" id="qzStop" step="any" placeholder="自动建议, 可修改"></div>
+    <div id="qzDirHint" class="hint"></div>
+    <div class="row"><button id="btnGrade" class="gold" disabled>✅ 交卷批改</button></div>
+  </div>
+
+  <div class="panel" style="flex:1;min-width:560px">
+    <canvas id="qzChart" style="height:420px"></canvas>
+    <div id="qzResult"></div>
+    <div class="sec">成绩统计 · 错题分析</div>
+    <div class="scroll" style="max-height:420px" id="qzStats"></div>
+  </div>
+</div>
+</div>
+
 <script>
 const $ = id => document.getElementById(id);
 const api = async (url, body) => {
@@ -170,7 +211,9 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
   $('tab-bt').style.display = t.dataset.tab === 'bt' ? '' : 'none';
   $('tab-train').style.display = t.dataset.tab === 'train' ? '' : 'none';
+  $('tab-quiz').style.display = t.dataset.tab === 'quiz' ? '' : 'none';
   if (t.dataset.tab === 'train') loadHistory();
+  if (t.dataset.tab === 'quiz') loadQuizStats();
 }));
 
 // ---------- 数据集联动 (按市场配置过滤) ----------
@@ -186,7 +229,7 @@ function fillSymbols(symSel, tfSel, htfSel, profSel) {
     const prof = profSel.value, sym = symSel.value;
     const tfs = DATASETS.filter(d => d.profile === prof && d.symbol === sym).map(d => d.tf).sort();
     tfSel.innerHTML = tfs.map(t => `<option>${t}</option>`).join('');
-    htfSel.innerHTML = '<option value="">无 (单周期)</option>' +
+    if (htfSel) htfSel.innerHTML = '<option value="">无 (单周期)</option>' +
       tfs.filter(t => t !== tfSel.value).map(t => `<option>${t}</option>`).join('');
   };
   profSel.addEventListener('change', refresh);
@@ -397,6 +440,272 @@ async function loadHistory() {
   } catch (e) { $('historyBox').innerHTML = '历史加载失败: ' + esc(e.message); }
 }
 
+// ---------- 答题评测页 (Cyborg 试卷盲测) ----------
+const QZ = { item: null, graded: false };
+const QZ_M1 = {
+  A: ['绝对强势', '吸筹尾声/启动前夜: 供需失衡, 供应消耗殆尽 (高胜率做多点)', 1],
+  B: ['相对强势', '趋势中继回踩: Markup 正常缩量回调 (中胜率加仓点)', 1],
+  C: ['混沌状态', '震荡市/无主力: 量价随机, 无主力控盘痕迹 (观望)', 0],
+  D: ['绝对弱势', '派发阶段/出货完毕: 大量大阴线, 努力与结果背离 (高胜率做空点)', -1],
+};
+const QZ_M2 = {
+  A: ['无量空跌', 'No Supply Test: 创新低/回踩但量极度萎缩 (无人抛售)'],
+  B: ['巨量不跌', 'Buying Absorb: 巨量且收盘在K线上中部 (主力暗中接盘)'],
+  C: ['无量反弹', 'No Demand: 上涨但量极度萎缩 (散户跟风, 假突破预警)'],
+  D: ['放量滞涨', 'Distribution: 巨量但实体小留长上影 (高位抛压)'],
+};
+const QZ_M3 = {
+  A: ['是', 'SL 到第一压力位 TP 盈亏比 ≥ 3:1 (完美点位)'],
+  B: ['否', '方向看对但空间狭窄, 不值得冒险'],
+};
+
+function buildRadios(containerId, opts, group) {
+  $(containerId).innerHTML = Object.entries(opts).map(([k, v]) => `
+    <label style="display:flex;gap:6px;align-items:flex-start;margin-bottom:6px;min-width:0;cursor:pointer">
+      <input type="radio" name="${group}" value="${k}" style="margin-top:2px">
+      <span><b>${k}. ${esc(v[0])}</b><br><span style="color:var(--dim);font-size:11px">${esc(v[1])}</span></span>
+    </label>`).join('');
+}
+
+function qzDirection() {
+  const m1 = document.querySelector('input[name=qzM1]:checked');
+  return m1 ? QZ_M1[m1.value][2] : null;
+}
+function qzM1Name() {
+  const m1 = document.querySelector('input[name=qzM1]:checked');
+  return m1 ? m1.value : null;
+}
+
+function qzSyncStop() {
+  const d = qzDirection();
+  const stop = $('qzStop');
+  stop.disabled = d === 0 || d === null;
+  if (QZ.item) {
+    if (d === 1) stop.value = QZ.item.default_stop_long;
+    else if (d === -1) stop.value = QZ.item.default_stop_short;
+  }
+  const hint = $('qzDirHint');
+  if (d === null) hint.textContent = '请先选择模块1 (判断当前强弱度)';
+  else if (d === 1) hint.innerHTML = '→ 预测方向: <b style="color:var(--up)">做多</b> · 进场价 = 最新收盘价 (可见K线最后一根收盘)';
+  else if (d === -1) hint.innerHTML = '→ 预测方向: <b style="color:var(--down)">做空</b> · 进场价 = 最新收盘价 (可见K线最后一根收盘)';
+  else hint.innerHTML = '→ 混沌状态: 观望, 不交易 (仍可观察揭晓后的真实行情检验判断)';
+  $('btnGrade').disabled = !QZ.item || QZ.graded;
+}
+
+function drawCandles(bars, opts) {
+  const cv = $('qzChart'), ctx = cv.getContext('2d');
+  const H = 420, W = cv.clientWidth;
+  cv.width = W * devicePixelRatio; cv.height = H * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const fut = opts.future || [];
+  const all = bars.concat(fut);
+  const padL = 6, padR = 6, padT = 10;
+  const priceH = H * 0.72, volTop = H * 0.78, volH = H * 0.18;
+  let lo = Math.min(...all.map(b => b[3])), hi = Math.max(...all.map(b => b[2]));
+  [opts.entry, opts.stop, opts.tp2, opts.tp3].forEach(v => {
+    if (typeof v === 'number' && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  });
+  if (hi - lo < 1e-9) hi = lo + 1;
+  const vmax = Math.max(...all.map(b => b[5]), 1e-9);
+  const n = all.length, bw = (W - padL - padR) / n;
+  const X = i => padL + bw * i + bw / 2;
+  const YP = v => padT + (1 - (v - lo) / (hi - lo)) * priceH;
+
+  if (fut.length) {
+    ctx.fillStyle = 'rgba(88,166,255,0.08)';
+    ctx.fillRect(X(bars.length) - bw / 2, padT, bw * (fut.length + 1), H - padT);
+    ctx.fillStyle = 'rgba(88,166,255,0.65)'; ctx.font = '10px sans-serif';
+    ctx.fillText('▼ 未来 ' + fut.length + ' 根 (揭晓区)', X(bars.length) + 6, padT + 12);
+  }
+  all.forEach((b, i) => {
+    const vis = i < bars.length;
+    const up = b[4] >= b[1];
+    const col = vis ? (up ? '#3fb950' : '#f85149') : (up ? '#2ea043' : '#da3633');
+    ctx.globalAlpha = vis ? 1 : 0.8;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(X(i), YP(b[2])); ctx.lineTo(X(i), YP(b[3])); ctx.stroke();
+    const yTop = YP(Math.max(b[1], b[4])), hh = Math.max(Math.abs(YP(b[1]) - YP(b[4])), 1);
+    ctx.fillRect(X(i) - Math.max(1, bw * 0.26), yTop, Math.max(2, bw * 0.52), hh);
+    const vh = (b[5] / vmax) * volH;
+    ctx.globalAlpha = (vis ? 1 : 0.8) * 0.55;
+    ctx.fillRect(X(i) - Math.max(1, bw * 0.26), volTop + volH - vh, Math.max(2, bw * 0.52), vh);
+    ctx.globalAlpha = 1;
+  });
+  const line = (v, color, dash, label) => {
+    if (typeof v !== 'number' || !isFinite(v)) return;
+    ctx.setLineDash(dash); ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(padL, YP(v)); ctx.lineTo(W - padR, YP(v)); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = color; ctx.font = '10px sans-serif';
+    ctx.fillText(label + ' ' + fmt(v), padL + 4, YP(v) - 3);
+  };
+  if (typeof opts.entry === 'number') line(opts.entry, '#58a6ff', [4, 3], '进场');
+  line(opts.stop, '#f85149', [4, 3], '止损');
+  line(opts.tp2, '#3fb950', [2, 3], 'TP2R');
+  line(opts.tp3, '#56d364', [2, 3], 'TP3R');
+  if (fut.length) {
+    ctx.strokeStyle = '#58a6ff'; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(X(bars.length - 1), padT); ctx.lineTo(X(bars.length - 1), H - 18);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.fillStyle = '#8b949e'; ctx.font = '10px sans-serif';
+  [0, Math.floor(n / 2), n - 1].forEach(i =>
+    ctx.fillText(String(all[i][0]).slice(0, 16).replace('T', ' '), X(i) - 40, H - 4));
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText('成交量', padL + 4, volTop + 10);
+}
+
+async function newQuizItem() {
+  QZ.item = null; QZ.graded = false;
+  $('qzResult').innerHTML = ''; $('qzStatus').textContent = '抽题中...';
+  $('btnNewQuiz').disabled = true;
+  try {
+    const item = await api('/api/quiz/new', {
+      profile: $('qzProfile').value, symbol: $('qzSymbol').value, tf: $('qzTf').value,
+      window: +$('qzWindow').value, future: +$('qzFuture').value,
+    });
+    QZ.item = item;
+    document.querySelectorAll('input[name=qzM1],input[name=qzM2],input[name=qzM3]').forEach(r => r.checked = false);
+    drawCandles(item.visible, {});
+    $('qzStatus').innerHTML =
+      `题目 ${esc(item.item_id)} · ${esc(item.symbol)} ${item.tf} · ` +
+      `${item.window} 根可见 (${item.start_dt.slice(0, 10)} ~ ${item.visible_end_dt.slice(0, 10)}) · ` +
+      `进场价(最后收盘) <b>${fmt(item.entry_price)}</b> · 建议止损 多 ${fmt(item.default_stop_long)} / 空 ${fmt(item.default_stop_short)}`;
+    qzSyncStop();
+  } catch (e) { $('qzStatus').textContent = '抽题错误: ' + e.message; }
+  finally { $('btnNewQuiz').disabled = false; }
+}
+
+function renderQuizResult(p) {
+  const o = p.outcome;
+  let html;
+  if (o === 'NO_TRADE') {
+    const wb = p.would_be;
+    const ok = p.abstain_ok;
+    html = `<div class="banner" style="border-color:var(--dim)">
+      <b>${p.icon} ${esc(p.label)}</b> — 原因: ${esc(p.reason)} · 不评分 (记录潜在结果用于检验判断)
+      <div style="margin-top:6px;font-size:12px;color:var(--dim)">
+        若做多 (止损 ${fmt(wb.long.stop)}): 潜在最大浮盈 <b>+${fmt(wb.long.mfe_r)}R</b> (${esc(wb.long.code)}) ·
+        若做空 (止损 ${fmt(wb.short.stop)}): 潜在最大浮盈 <b>+${fmt(wb.short.mfe_r)}R</b> (${esc(wb.short.code)})<br>
+        ${ok ? '<span class="pos">✅ 正确观望: 双向均无 ≥2R 行情, 混沌判断成立</span>'
+             : '<span class="neg">⚠️ 错过机会: 至少一个方向存在 ≥2R 行情, 混沌判断需修正</span>'}
+      </div></div>`;
+  } else {
+    const cls = o === 'TARGET' ? 'pass' : (o === 'STOP' ? 'fail' : '');
+    const why = o === 'TARGET' ? '已达 2R 目标, 未触及止损' :
+      (o === 'STOP' ? '止损被触发 (止损优先, 过程破位即出局)' : '60根内既未破止损也未达 2R');
+    html = `<div class="banner ${cls}">
+      <b>${p.icon} ${esc(p.label)} — ${p.score}分</b> ${esc(why)}
+      <div style="margin-top:6px;font-size:12px">
+        进场 ${fmt(p.entry)} · 止损 ${fmt(p.stop)} · R=${fmt(p.r, 4)} · TP2R=${fmt(p.target_2r)} · TP3R=${fmt(p.target_3r)}<br>
+        第 <b>${p.bars_held}</b> 根以 ${fmt(p.exit_price)} 出场 (${p.exit_dt.slice(0, 16).replace('T', ' ')}) ·
+        MFE <b class="pos">+${fmt(p.mfe_r)}R</b> · MAE <b class="neg">-${fmt(p.mae_r)}R</b> (占止损距离 ${fmt(p.mae_pct)}%)<br>
+        <span style="color:var(--dim)">${esc(p.logic)}</span>
+      </div></div>`;
+  }
+  $('qzResult').innerHTML = html + '<div class="row" style="margin-top:8px"><button class="ghost" onclick="newQuizItem()">下一题 →</button></div>';
+}
+
+function qzOutcomeChip(code) {
+  const map = { TARGET: ['✅', 'pass'], STOP: ['❌', 'fail'], TIMEOUT: ['⚠️', ''], NO_TRADE: ['🚫', ''] };
+  const [ic, cls] = map[code] || ['?', ''];
+  return `<span class="chip ${cls}">${ic} ${code}</span>`;
+}
+
+function renderQuizStats(s) {
+  const st = s.stats;
+  const cards = [
+    ['已答卷', st.total], ['已交易', st.graded], ['平均分', st.avg_score == null ? '-' : fmt(st.avg_score)],
+    ['完美率', st.perfect_rate == null ? '-' : pct(st.perfect_rate)],
+    ['止损率', st.stop_rate == null ? '-' : pct(st.stop_rate)],
+    ['平局率', st.timeout_rate == null ? '-' : pct(st.timeout_rate)],
+    ['平均MFE', st.avg_mfe_r == null ? '-' : '+' + fmt(st.avg_mfe_r) + 'R'],
+    ['平均MAE', st.avg_mae_r == null ? '-' : '-' + fmt(st.avg_mae_r) + 'R'],
+  ];
+  const cardHtml = '<div class="metrics" style="margin:6px 0">' + cards.map(([k, v]) =>
+    `<div class="mcard"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('') + '</div>';
+
+  const row = (g, k) => g[k] && g[k].n > 0 ? `<tr><td>${k}</td><td>${g[k].n}</td><td>${g[k].target}</td>
+    <td>${g[k].stop}</td><td>${g[k].timeout}</td><td>${pct(g[k].win_rate, 1)}</td>
+    <td>${fmt(g[k].avg_score)}</td><td class="${g[k].pie_rate > 0.4 ? 'neg' : ''}">${pct(g[k].pie_rate, 1)}</td></tr>` : '';
+  const m1Rows = Object.keys(s.by_m1).map(k => row(s.by_m1, k)).join('');
+  const m2Rows = Object.keys(s.by_m2).map(k => row(s.by_m2, k)).join('');
+  const b3 = s.m3_B;
+  const abs = s.abstain;
+  const wrongRows = s.wrong_top.map(r => `<tr>
+    <td>${esc(r.ts.slice(5, 16).replace('T', ' '))}</td>
+    <td>${esc(r.symbol)} ${r.tf}</td>
+    <td>${r.m1}</td><td>${r.m2}</td><td>${r.m3}</td>
+    <td>${fmt(r.mfe_r)}R</td><td>${esc(r.start_dt.slice(0, 10))}</td></tr>`).join('');
+
+  $('qzStats').innerHTML = cardHtml + `
+    <div class="sec">按模块1 强弱度 (画饼率 = 看对方向却被止损)</div>
+    <table><tr><th>选项</th><th>交易</th><th>完美</th><th>止损</th><th>平局</th><th>胜率</th><th>均分</th><th>画饼率</th></tr>${m1Rows || '<tr><td colspan=8>暂无交易数据</td></tr>'}</table>
+    <div class="sec">按模块2 努力与结果信号</div>
+    <table><tr><th>选项</th><th>交易</th><th>完美</th><th>止损</th><th>平局</th><th>胜率</th><th>均分</th><th>画饼率</th></tr>${m2Rows || '<tr><td colspan=8>暂无数据</td></tr>'}</table>
+    <div class="sec">模块3 盈亏比过滤 (克制检验)</div>
+    <table><tr><th>判定</th><th>数量</th><th>正确克制/错过机会</th></tr>
+      <tr><td>A 是 (交易)</td><td>${st.graded}</td><td>胜率见上表</td></tr>
+      <tr><td>B 否 (放弃)</td><td>${b3.n}</td><td>错过≥2R机会 <b class="neg">${b3.missed}</b> · 正确克制 <b class="pos">${b3.correct}</b></td></tr></table>
+    <div class="sec">观望检验 (混沌判断)</div>
+    <table><tr><th>数量</th><th>正确观望 (双向无2R)</th><th>错过行情</th></tr>
+      <tr><td>${abs.n}</td><td class="pos">${abs.correct}</td><td class="neg">${abs.n - abs.correct}</td></tr></table>
+    <div class="sec">错题榜 (最近被止损的题目)</div>
+    <table><tr><th>时间</th><th>标的</th><th>M1</th><th>M2</th><th>M3</th><th>MFE</th><th>盲盒起点</th></tr>
+      ${wrongRows || '<tr><td colspan=7>暂无错题 🎉</td></tr>'}</table>`;
+}
+
+async function loadQuizStats() {
+  try {
+    const s = await api('/api/quiz/stats');
+    renderQuizStats(s);
+  } catch (e) { $('qzStats').innerHTML = '统计加载失败: ' + esc(e.message); }
+}
+
+async function submitQuiz() {
+  const m1 = document.querySelector('input[name=qzM1]:checked');
+  const m2 = document.querySelector('input[name=qzM2]:checked');
+  const m3 = document.querySelector('input[name=qzM3]:checked');
+  if (!m1 || !m2 || !m3) { $('qzStatus').textContent = '请完成全部三个模块的答题'; return; }
+  const d = qzDirection();
+  if (d !== 0 && m3.value === 'A' && !$('qzStop').value) { $('qzStatus').textContent = '请输入止损价'; return; }
+  $('btnGrade').disabled = true;
+  $('qzStatus').textContent = '交卷批改中... (追踪未来 ' + QZ.item.future + ' 根K线)';
+  try {
+    const p = await api('/api/quiz/grade', {
+      item_id: QZ.item.item_id, m1: m1.value, m2: m2.value, m3: m3.value,
+      stop: d !== 0 && m3.value === 'A' ? parseFloat($('qzStop').value) : null,
+    });
+    QZ.graded = true;
+    renderQuizResult(p);
+    drawCandles(QZ.item.visible, {
+      future: p.future_bars, entry: p.entry, stop: p.stop,
+      tp2: p.target_2r, tp3: p.target_3r,
+    });
+    $('qzStatus').textContent = '批改完成: ' + p.icon + ' ' + p.label + (p.score != null ? ' ' + p.score + '分' : '');
+    await loadQuizStats();
+  } catch (e) { $('qzStatus').textContent = '批改错误: ' + e.message; }
+  finally { $('btnGrade').disabled = QZ.graded || !QZ.item; }
+}
+
+async function exportLabels() {
+  $('btnQuizExport').disabled = true;
+  try {
+    const r = await api('/api/quiz/export', {});
+    $('qzStatus').innerHTML = `标注集已导出: <b>${r.count}</b> 条 → ${esc(r.file)} ` +
+      `<a href="${r.url}" style="color:var(--acc)">⬇ 下载</a> (黄金数据集, 供 AI 训练)`;
+  } catch (e) { $('qzStatus').textContent = '导出错误: ' + e.message; }
+  finally { $('btnQuizExport').disabled = false; }
+}
+
+buildRadios('qzM1', QZ_M1, 'qzM1');
+buildRadios('qzM2', QZ_M2, 'qzM2');
+buildRadios('qzM3', QZ_M3, 'qzM3');
+document.querySelectorAll('input[name=qzM1]').forEach(r => r.addEventListener('change', qzSyncStop));
+$('btnNewQuiz').addEventListener('click', newQuizItem);
+$('btnGrade').addEventListener('click', submitQuiz);
+$('btnQuizExport').addEventListener('click', exportLabels);
+
 // ---------- 初始化 ----------
 (async () => {
   try {
@@ -404,14 +713,18 @@ async function loadHistory() {
     DATASETS = st.datasets;
     fillSymbols($('selSymbol'), $('selTf'), $('selHtf'), $('selProfile'));
     fillSymbols($('trSymbol'), $('trTf'), $('trHtf'), $('trProfile'));
+    fillSymbols($('qzSymbol'), $('qzTf'), null, $('qzProfile'));
     if (DATASETS.some(d => d.symbol === 'BTC/USDT')) {
       $('selSymbol').value = 'BTC/USDT';
       $('trSymbol').value = 'BTC/USDT';
+      $('qzSymbol').value = 'BTC/USDT';
     }
     $('selSymbol').dispatchEvent(new Event('change'));
     $('trSymbol').dispatchEvent(new Event('change'));
+    $('qzSymbol').dispatchEvent(new Event('change'));
     updateTParams();
     loadHistory();
+    loadQuizStats();
   } catch (e) { $('status').textContent = '初始化失败: ' + e.message; }
 })();
 

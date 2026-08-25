@@ -1,10 +1,11 @@
 # WyckoffAnalytics — 系统状态与回测结果总报告
 
-> 更新: 2026-08-24 (v0.3: 本地AI训练台 + GitHub) | 所有结果含完整摩擦模型（手续费+滑点+价差）
+> 更新: 2026-08-25 (v0.3.3: 答题评测系统) | 所有结果含完整摩擦模型（手续费+滑点+价差）
 
-## 0. v0.3 新增能力
+## 0. 新增能力
 
-- **本地 AI 训练台** (Web): `POST /api/train` — 贝叶斯优化 → 全量回测 → **准确率统计**（整体胜率 + 分进场设置胜率）→ Walk-Forward 样本外验证 → 训练历史 `research/training_log.json`（含当前最优轮次标记）；CLI: `python core/training.py`
+- **v0.3.3 答题评测系统** (Cyborg 第一阶段·试卷盲测, Web 页签): 见 §8
+- **v0.3 本地 AI 训练台** (Web): `POST /api/train` — 贝叶斯优化 → 全量回测 → **准确率统计**（整体胜率 + 分进场设置胜率）→ Walk-Forward 样本外验证 → 训练历史 `research/training_log.json`（含当前最优轮次标记）；CLI: `python core/training.py`
 - 实测: Web API 首轮训练 BTC 4h+1dHTF → 适应度 0.744, 准确率 65.55%, 验证未否决 ✅
 - **GitHub**: https://github.com/GloveBear666/WyckoffAnalytics (PUBLIC, main) — 含 .gitignore/.gitattributes 跨平台换行、macOS 字体支持、Mac fork 安装指引; 版权 PDF 与提取全文不入库
 
@@ -64,7 +65,28 @@
 
 - 学习笔记: `research/learning_notes/` (7篇) · 策略日志: `research/strategy_log.jsonl` · 验证报告: `research/validation/walk_forward_*.json` (5份, 按标的+周期命名)
 
-## 迭代路线 (v0.3 候选)
+## 8. 答题评测系统 (Cyborg 第一阶段) — v0.3.3 上线
+
+**入口**: Web 终端「答题评测」页签 · 核心: `core/quiz.py` · 数据: `research/quiz/`
+
+闭环流程: **随机截取盲盒**(默认 120×4H K线, 隐藏未来走势) → **三模块答题** → **自动批改**(未来60根, 止损优先) → **MFE/MAE 标注** → **错题分析** → **黄金标注集导出**
+
+| 环节 | 实现 |
+|---|---|
+| 盲盒生成 | 随机起点(会话内去重), 进场价=可见区最后收盘, 建议止损=近20根极值∓0.5×ATR(可改), 载荷不下发未来数据 |
+| 模块1 强弱度 | A绝对强势/B相对强势(→做多) · C混沌(→观望) · D绝对弱势(→做空) |
+| 模块2 努力结果 | A无量空跌/B巨量不跌/C无量反弹/D放量滞涨 (最右端3根, 作为信号标签记录) |
+| 模块3 盈亏比 | A是(SL→TP≥3:1, 交易) / B否(放弃, 记录"如果入场"潜在结果检验克制) |
+| 自动批改 | ❌破止损 **0分** (止损优先, 跳空按开盘价成交) · ✅达2R **100分** · ⚠️60根耗尽 **50分** |
+| 标注矩阵 | MFE/MAE 以 R 倍数记录(含出场当根极值), MAE 同时给占止损距离百分比 |
+| 错题分析 | 分模块胜率/均分 · **画饼率**(看对方向却被止损) · 观望检验(双向均无2R=正确) · 错题榜 |
+| 标注导出 | `research/quiz/labels/quiz_labels_*.jsonl`: `[K线矩阵(window,5)] + [人类答案] + [未来真实结果]` |
+
+- 冒烟测试: `scripts/quiz_smoke.py` — 做多/做空/观望/盈亏比放弃全路径 + 批改数学断言(TARGET→MFE≥2R, STOP→MAE≥1R) + 未来数据零泄露校验
+- 实测样本: BTC 4h 一轮 15 题 → 平均分 27.8, 完美率 22.2%, 止损率 66.7% (纯随机盲答, 供流程验证, 不具统计意义)
+- API: `POST /api/quiz/new` · `POST /api/quiz/grade` · `GET /api/quiz/stats` · `POST /api/quiz/export` · `GET /api/quiz/labels/<file>`
+
+## 迭代路线 (v0.4 候选)
 
 1. **BTC 1d**: 交易过稀 → 降低共振门槛或改 1d+1w HTF; 或直接采用 4h+1d 作为主配置
 2. **AAPL**: fold1 OOS 失效 → 波动率带收窄、相对强度过滤

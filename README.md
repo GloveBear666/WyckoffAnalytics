@@ -9,6 +9,7 @@
 
 | 模块 | 说明 | 位置 |
 |---|---|---|
+| 0. CYBORG_QUIZ_LAYER | 试卷盲测答题系统 (随机截取→答题→批改→MFE/MAE标注→错题分析→标注集导出) | `core/quiz.py` `research/quiz/` |
 | 1. KNOWLEDGE_INGESTION_LAYER | PDF文本提取/章节地图/概念窗口/OCR | `ingest/` `knowledge/` |
 | 2. MARKET_ISOLATION_LAYER | 美股RTH(跳空过滤) / 加密7x24(插针容错) | `config/market_profiles.json` `core/data.py` |
 | 3. EXECUTION_ENGINE | 温度控制 T∈[0.1,1.0] 全参数插值 + HTF多周期确认 | `core/signals.py` `core/indicators.py` |
@@ -28,7 +29,7 @@ pip install -r requirements.txt
 python core/data.py --profile crypto --symbol BTC/USDT --tf 1h 4h 1d
 python core/data.py --profile equity --symbol SPY AAPL
 
-# 2. Web 可视终端 (回测 + 温度滑杆 + AI 训练)
+# 2. Web 可视终端 (回测 + 温度滑杆 + AI 训练 + 答题评测)
 python web/app.py          # -> http://127.0.0.1:8088
 
 # 3. 端到端流水线: 回测 -> 贝叶斯优化 -> Walk-Forward -> 学习笔记
@@ -46,7 +47,8 @@ python scripts/smoke_test.py
 
 - **回测页**: 温度滑杆 T∈[0.1,1.0] 实时联动全部插值参数；标的/周期/HTF确认/窗口/持有/冷却可调；净值曲线+回撤图+交易明细；温度扫描对比表
 - **AI 训练页**: 一键本地训练 —— 贝叶斯优化(真实历史数据) → 全量回测 → **准确率统计**(整体胜率+分设置胜率) → Walk-Forward 样本外验证(衰减>30%自动否决) → 写入训练历史；历史面板显示每轮 适应度/准确率/判定，并标记**当前最优轮次**（最高 OOS Calmar）
-- API: `GET /api/status` · `POST /api/backtest` · `POST /api/grid` · `POST /api/train` · `GET /api/train/history`
+- **答题评测页** (Cyborg 第一阶段·试卷盲测): 随机截取 N 根K线盲盒并**隐藏未来走势** → 按威科夫三模块答题 (①强弱度 ②努力与结果 ③盈亏比≥3:1) → 交卷后自动追踪未来 M 根K线批改 (**止损优先**): ❌破止损0分 / ✅达2R目标100分 / ⚠️时间耗尽50分 → 计算 **MFE/MAE** (R 倍数) → 实时错题分析 (画饼率/分模块胜率/观望检验) → 导出**黄金标注集** `[K线矩阵(window,5)] + [人类答案] + [未来真实结果]` 供 AI 训练
+- API: `GET /api/status` · `POST /api/backtest` · `POST /api/grid` · `POST /api/train` · `GET /api/train/history` · `POST /api/quiz/new` · `POST /api/quiz/grade` · `GET /api/quiz/stats` · `POST /api/quiz/export` · `GET /api/quiz/labels/<file>`
 
 ## 温度控制语义 (模块3核心)
 
