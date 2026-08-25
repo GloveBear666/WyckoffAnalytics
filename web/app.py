@@ -3,16 +3,25 @@
 WYCKOFFANALYTICS WEB 可视终端 - 后端 (Flask)
 =============================================
 功能:
-  - GET  /api/status        数据/配置/温度参数
+  - GET  /api/status        数据/配置/温度参数/局域网地址
   - POST /api/backtest      一键回测 (温度T/窗口/冷却/HTF可调)
   - POST /api/grid          温度扫描 T∈[0.1,1.0]
   - GET  /                  前端页面 (web/static/index.html)
 
-启动: python web/app.py  (默认 http://127.0.0.1:8088)
+多端访问 (v0.3.4):
+  - 默认绑定 0.0.0.0:8088, 同局域网任意设备可直接访问 http://<本机IP>:8088
+  - 启用 CORS, 前端可部署到 GitHub Pages 后指向本机后端
+  - 公网访问: cloudflared tunnel --url http://127.0.0.1:8088 (免费HTTPS隧道)
+             或 Tailscale 安装后: tailscale serve --bg 8088 (稳定HTTPS域名)
+  - 环境变量 HOST 可覆盖绑定地址 (如只本机: HOST=127.0.0.1)
+
+启动: python web/app.py  (默认 http://0.0.0.0:8088)
 """
 from __future__ import annotations
 
 import json
+import os
+import socket
 import sys
 from pathlib import Path
 
@@ -40,6 +49,39 @@ _DATA_CACHE: dict = {}
 _MAX_CHART_POINTS = 2000
 _MAX_TRADES = 1000
 QUIZ = QuizStore()
+
+
+# ---------------- 多端访问支持: CORS + 预检 + 局域网IP ----------------
+@app.after_request
+def add_cors_headers(resp):
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return resp
+
+
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+
+def _lan_ips() -> list[str]:
+    """尽力枚举本机局域网 IP (供同网络客户端访问)。"""
+    ips: set[str] = set()
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ips.add(info[4][0])
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))     # UDP connect 不发包, 仅取路由出口IP
+        ips.add(s.getsockname()[0])
+        s.close()
+    except Exception:  # noqa: BLE001
+        pass
+    return sorted(ips)
 
 
 class ApiError(Exception):
@@ -110,6 +152,7 @@ def status():
     t = temperature_params(0.5)
     return jsonify({
         "datasets": _list_datasets(),
+        "lan_ips": _lan_ips(),
         "profiles": {k: v["description"] for k, v in
                      json.loads((ROOT / "config" / "market_profiles.json").read_text(encoding="utf-8"))["profiles"].items()},
         "temperature_params_05": {k: v for k, v in t.items() if k != "T"},
@@ -261,5 +304,8 @@ def quiz_labels_download(name: str):
 
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8088
-    print(f"[web] WyckoffAnalytics terminal -> http://127.0.0.1:{port}", flush=True)
-    app.run(host="127.0.0.1", port=port, threaded=True)
+    host = os.environ.get("HOST", "0.0.0.0")
+    print(f"[web] WyckoffAnalytics terminal -> http://{host}:{port}", flush=True)
+    for ip in _lan_ips():
+        print(f"[web] 局域网访问 -> http://{ip}:{port}", flush=True)
+    app.run(host=host, port=port, threaded=True)

@@ -70,6 +70,12 @@
 <body>
 <h1>WyckoffAnalytics · 威科夫动态参数化交易终端</h1>
 <div class="sub">温度控制 T∈[0.1,1.0] · 摩擦模型回测 · 多周期 HTF 确认 · 本地 AI 训练 · 试卷盲测答题</div>
+<div class="row" style="max-width:860px">
+  <label style="min-width:auto">后端地址</label>
+  <input id="inApiBase" placeholder="留空=本机同源 / 局域网: http://192.168.x.x:8088 / 公网隧道: https://xxx.trycloudflare.com">
+  <button id="btnApiSave" class="ghost" style="flex:0 0 auto">保存并重载</button>
+  <span id="apiHint" style="font-size:11px;color:var(--dim)"></span>
+</div>
 
 <div class="tabs">
   <div class="tab active" data-tab="bt">回测</div>
@@ -189,8 +195,11 @@
 
 <script>
 const $ = id => document.getElementById(id);
+// 后端地址: localStorage 持久化; 留空=同源(本机 http://IP:8088 直开), 填远程地址(局域网IP/公网HTTPS隧道) 用于 GitHub Pages 多端访问
+let API_BASE = '';
+try { API_BASE = (localStorage.getItem('wyckoff_api_base') || '').trim().replace(/\/+$/, ''); } catch (e) { API_BASE = ''; }
 const api = async (url, body) => {
-  const r = await fetch(url, { method: body ? 'POST' : 'GET',
+  const r = await fetch(API_BASE + url, { method: body ? 'POST' : 'GET',
     headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
   if (!r.ok) {
     let msg = 'HTTP ' + r.status;
@@ -215,6 +224,27 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   if (t.dataset.tab === 'train') loadHistory();
   if (t.dataset.tab === 'quiz') loadQuizStats();
 }));
+
+// ---------- 后端地址设置 (多端访问) ----------
+(function initApiBase() {
+  const inp = $('inApiBase');
+  inp.value = API_BASE;
+  const hint = $('apiHint');
+  const isPages = /github\.io|pages\.dev|vercel\.app|netlify\.app/.test(window.location.hostname);
+  if (API_BASE) {
+    hint.innerHTML = `当前后端: <b>${esc(API_BASE)}</b> (页面来源 ${esc(window.location.origin)})`;
+  } else if (isPages) {
+    hint.innerHTML = '<b style="color:var(--warn)">⚠ 托管页面: 必须填写后端地址才能使用 (局域网填 http://IP:8088; 网页为 https 时后端必须也是 https 隧道)</b>';
+  } else {
+    hint.textContent = '当前后端: 本机同源 (' + window.location.origin + ')';
+  }
+  $('btnApiSave').addEventListener('click', () => {
+    let v = inp.value.trim().replace(/\/+$/, '');
+    if (v && !/^https?:\/\//i.test(v)) { hint.textContent = '地址需以 http:// 或 https:// 开头'; return; }
+    try { localStorage.setItem('wyckoff_api_base', v); } catch (e) { /* 隐私模式忽略 */ }
+    location.reload();
+  });
+})();
 
 // ---------- 数据集联动 (按市场配置过滤) ----------
 function fillSymbols(symSel, tfSel, htfSel, profSel) {
@@ -693,7 +723,7 @@ async function exportLabels() {
   try {
     const r = await api('/api/quiz/export', {});
     $('qzStatus').innerHTML = `标注集已导出: <b>${r.count}</b> 条 → ${esc(r.file)} ` +
-      `<a href="${r.url}" style="color:var(--acc)">⬇ 下载</a> (黄金数据集, 供 AI 训练)`;
+      `<a href="${API_BASE}${r.url}" style="color:var(--acc)">⬇ 下载</a> (黄金数据集, 供 AI 训练)`;
   } catch (e) { $('qzStatus').textContent = '导出错误: ' + e.message; }
   finally { $('btnQuizExport').disabled = false; }
 }
